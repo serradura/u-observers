@@ -8,7 +8,7 @@ module Micro
       def call_observers(with: :call)
         proc do |object|
           Array(with)
-            .each { |action| object.observers.call(object, action: action) }
+            .each { |action| object.observers.call(action: action) }
         end
       end
 
@@ -22,7 +22,7 @@ module Micro
     end
 
     def observers
-      @observers ||= Observers::Manager.new
+      @observers ||= Observers::Manager.for(self)
     end
 
   end

@@ -6,7 +6,12 @@ module Micro
     class Manager
       EMPTY_HASH = {}.freeze
 
-      def initialize(list = nil)
+      def self.for(subject)
+        new(subject)
+      end
+
+      def initialize(subject, list = nil)
+        @subject = subject
         @list = (list.kind_of?(Array) ? list : []).flatten.tap(&:compact!)
       end
 
@@ -24,15 +29,15 @@ module Micro
         self
       end
 
-      def call(subject, action: :call)
+      def call(action: :call)
         @list.each do |observer, data|
           next unless observer.respond_to?(action)
 
           handler = observer.method(action)
 
           case handler.arity
-          when 2 then handler.call(subject, data)
-          when 1 then handler.call(subject)
+          when 2 then handler.call(@subject, data)
+          when 1 then handler.call(@subject)
           else raise NotImplementedError
           end
         end
