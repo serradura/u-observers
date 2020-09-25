@@ -64,4 +64,43 @@ class Micro::ObserversTest < Minitest::Test
 
     assert_predicate(FakePrinter.history, :empty?)
   end
+
+  class Person
+    include Micro::Observers
+
+    attr_reader :name
+
+    def initialize(name:)
+      @name = name
+    end
+
+    def name=(new_name)
+      changed = new_name != name
+
+      @name = new_name
+
+      observers.call(:print_person_name) and return if changed
+    end
+  end
+
+  PrintPersonName = -> (data) do
+    FakePrinter.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
+  end
+
+  def test_observers_caller
+    rand_number = rand
+
+    person = Person.new(name: 'Rodrigo')
+    person.observers.on(
+      action: :print_person_name,
+      call: PrintPersonName,
+      with: -> person do
+        { person: person, number: rand_number }
+      end
+    )
+
+    person.name = 'Serradura'
+
+    assert_equal("Person name: Serradura, number: #{rand_number}", FakePrinter.history[0])
+  end
 end

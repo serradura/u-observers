@@ -8,7 +8,7 @@ module Micro
       def call_observers(with: :call)
         proc do |object|
           Array(with)
-            .each { |action| object.observers.call(action: action) }
+            .each { |action| object.observers.call(action) }
         end
       end
 
