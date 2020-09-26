@@ -4,15 +4,21 @@ module Micro
   module Observers
 
     module EventsOrActions
-      DEFAULT = [:call]
+      DEFAULTS = [:call]
 
-      def self.[](values)
-        vals = Utils.compact_array(values)
+      def self.[](value)
+        values = Utils.compact_array(value)
 
-        vals.empty? ? DEFAULT : vals
+        values.empty? ? DEFAULTS : values
       end
 
-      private_constant :DEFAULT
+      def self.fetch_actions(hash)
+        return self[hash.fetch(:actions) { hash.fetch(:action) }] if hash.is_a?(Hash)
+
+        raise ArgumentError, 'expected a hash with the key :action or :actions'
+      end
+
+      private_constant :DEFAULTS
     end
 
   end

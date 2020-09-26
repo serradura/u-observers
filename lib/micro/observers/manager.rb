@@ -4,8 +4,6 @@ module Micro
   module Observers
 
     class Manager
-      EMPTY_HASH = {}.freeze
-
       EqualTo = -> (observer) do
         -> item { item[0] == :observer && item[1] == observer }
       end
@@ -24,7 +22,7 @@ module Micro
         @list.any?(&EqualTo[observer])
       end
 
-      def attach(observer, options = EMPTY_HASH)
+      def attach(observer, options = Utils::EMPTY_HASH)
         if options[:allow_duplication] || !included?(observer)
           @list << [:observer, observer, options[:data]]
         end
@@ -32,7 +30,7 @@ module Micro
         self
       end
 
-      def on(options=EMPTY_HASH)
+      def on(options = Utils::EMPTY_HASH)
         event, callable, with = options[:event], options[:call], options[:with]
 
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
@@ -48,14 +46,14 @@ module Micro
         self
       end
 
-      def notify(event)
-        notify!(event)
+      def notify(*events)
+        EventsOrActions[events].each { |act| notify!(act) }
 
         self
       end
 
-      def call(*actions)
-        EventsOrActions[actions].each { |act| notify!(act) }
+      def call(options = Utils::EMPTY_HASH)
+        EventsOrActions.fetch_actions(options).each { |act| notify!(act) }
 
         self
       end
@@ -80,7 +78,7 @@ module Micro
           end
         end
 
-      private_constant :EMPTY_HASH, :EqualTo
+      private_constant :EqualTo
     end
 
   end
