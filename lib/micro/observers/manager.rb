@@ -22,9 +22,13 @@ module Micro
         @list.any?(&EqualTo[observer])
       end
 
-      def attach(observer, options = Utils::EMPTY_HASH)
-        if options[:allow_duplication] || !included?(observer)
-          @list << [:observer, observer, options[:data]]
+      def attach(*args)
+        options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
+
+        Utils.compact_array(args).each do |observer|
+          if options[:allow_duplication] || !included?(observer)
+            @list << [:observer, observer, options[:data]]
+          end
         end
 
         self
@@ -40,8 +44,10 @@ module Micro
         @list << [:callable, event, [callable, arg]]
       end
 
-      def detach(observer)
-        @list.delete_if(&EqualTo[observer])
+      def detach(*args)
+        Utils.compact_array(args).each do |observer|
+          @list.delete_if(&EqualTo[observer])
+        end
 
         self
       end

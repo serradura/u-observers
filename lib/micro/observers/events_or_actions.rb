@@ -13,7 +13,7 @@ module Micro
       end
 
       def self.fetch_actions(hash)
-        return self[hash.fetch(:actions) { hash.fetch(:action) }] if hash.is_a?(Hash)
+        return self[hash[:actions] || hash.fetch(:action)] if hash.is_a?(Hash)
 
         raise ArgumentError, 'expected a hash with the key :action or :actions'
       end
