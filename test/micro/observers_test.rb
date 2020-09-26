@@ -117,4 +117,54 @@ class Micro::ObserversTest < Minitest::Test
 
     assert_equal("Person name: Serradura, number: #{rand_number}", FakePrinter.history[0])
   end
+
+  class Doer1
+    def do_a(_); FakePrinter.puts('do_a 1') ;end
+    def do_b(_); FakePrinter.puts('do_b 1') ;end
+  end
+
+  class Doer2
+    def do_b(_); FakePrinter.puts('do_b 2') ;end
+  end
+
+  def test_calling_actions
+    doer1, doer2 = Doer1.new, Doer2.new
+
+    person = Person.new(name: 'Rodrigo')
+
+    # -
+
+    person.observers.attach(doer1, doer2)
+
+    # -
+
+    person.observers.call(action: :do_a)
+
+    assert_equal(1, FakePrinter.history.size)
+
+    person.observers.call(action: [:do_b])
+
+    assert_equal(3, FakePrinter.history.size)
+
+    person.observers.call(action: [:do_a, :do_b])
+
+    assert_equal(6, FakePrinter.history.size)
+
+    person.observers.call(actions: [:do_a, :do_b])
+
+    assert_equal(9, FakePrinter.history.size)
+
+    assert_equal(
+      ['do_a 1', 'do_b 1', 'do_b 2', 'do_a 1', 'do_b 1', 'do_b 2', 'do_a 1', 'do_b 1', 'do_b 2'],
+      FakePrinter.history
+    )
+
+    # --
+
+    person.observers.detach(doer1, doer2)
+
+    person.observers.call(actions: [:do_a, :do_b])
+
+    assert_equal(9, FakePrinter.history.size)
+  end
 end
