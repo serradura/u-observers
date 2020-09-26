@@ -16,12 +16,6 @@ class Micro::ObserversTest < Minitest::Test
       &call_observers(action: [:print_title, :print_title_with_data])
   end
 
-  class Book < ActiveRecord::Base
-    include ::Micro::Observers
-
-    after_commit(&notify_observers(:transaction_completed))
-  end
-
   module TitlePrinter
     def self.print_title(post)
       FakePrinter.puts("Title: #{post.title}")
@@ -29,12 +23,6 @@ class Micro::ObserversTest < Minitest::Test
 
     def self.print_title_with_data(post, data)
       FakePrinter.puts("Title: #{post.title}, from: #{data[:from]}")
-    end
-  end
-
-  module LogTheBookCreation
-    def self.transaction_completed(book)
-      FakePrinter.puts("The book was successfully created! Title: #{book.title}")
     end
   end
 
@@ -49,6 +37,18 @@ class Micro::ObserversTest < Minitest::Test
 
     assert_equal("Title: Hello world", FakePrinter.history[0])
     assert_equal("Title: Hello world, from: Test 1", FakePrinter.history[1])
+  end
+
+  class Book < ActiveRecord::Base
+    include ::Micro::Observers
+
+    after_commit(&notify_observers(:transaction_completed))
+  end
+
+  module LogTheBookCreation
+    def self.transaction_completed(book)
+      FakePrinter.puts("The book was successfully created! Title: #{book.title}")
+    end
   end
 
   def test_the_observer_execution_using_the_notify_method
