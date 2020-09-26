@@ -13,13 +13,13 @@ class Micro::ObserversTest < Minitest::Test
     include ::Micro::Observers
 
     after_commit \
-      &call_observers(with: [:print_title, :print_title_with_data])
+      &call_observers(action: [:print_title, :print_title_with_data])
   end
 
   class Book < ActiveRecord::Base
     include ::Micro::Observers
 
-    after_commit(&notify_observers(with: [:print_title, :print_title_with_data]))
+    after_commit(&notify_observers(:transaction_completed))
   end
 
   module TitlePrinter
@@ -32,7 +32,15 @@ class Micro::ObserversTest < Minitest::Test
     end
   end
 
+  module LogTheBookCreation
+    def self.transaction_completed(book)
+      FakePrinter.puts("The book was successfully created! Title: #{book.title}")
+    end
+  end
+
   def test_the_observer_execution_using_the_call_method
+    assert_equal(0, FakePrinter.history.size)
+
     Post.transaction do
       post = Post.new(title: 'Hello world')
       post.observers.attach(TitlePrinter, data: { from: 'Test 1' })
@@ -44,14 +52,18 @@ class Micro::ObserversTest < Minitest::Test
   end
 
   def test_the_observer_execution_using_the_notify_method
+    assert_equal(0, FakePrinter.history.size)
+
     Book.transaction do
       book = Book.new(title: 'Observers')
-      book.observers.attach(TitlePrinter, data: { from: 'Test 2' })
+      book.observers.attach(LogTheBookCreation)
       book.save
     end
 
-    assert_equal("Title: Observers", FakePrinter.history[0])
-    assert_equal("Title: Observers, from: Test 2", FakePrinter.history[1])
+    assert_equal(
+      "The book was successfully created! Title: Observers",
+      FakePrinter.history[0]
+    )
   end
 
   def test_an_observer_deletion
@@ -79,7 +91,7 @@ class Micro::ObserversTest < Minitest::Test
 
       @name = new_name
 
-      observers.call(:print_person_name) and return if changed
+      observers.notify(:name_has_been_changed) and return if changed
     end
   end
 
@@ -88,11 +100,13 @@ class Micro::ObserversTest < Minitest::Test
   end
 
   def test_observers_caller
+    assert_equal(0, FakePrinter.history.size)
+
     rand_number = rand
 
     person = Person.new(name: 'Rodrigo')
     person.observers.on(
-      action: :print_person_name,
+      event: :name_has_been_changed,
       call: PrintPersonName,
       with: -> person do
         { person: person, number: rand_number }

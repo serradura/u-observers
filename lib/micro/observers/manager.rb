@@ -6,7 +6,7 @@ module Micro
     class Manager
       EMPTY_HASH = {}.freeze
 
-      SameObserver = -> (observer) do
+      EqualTo = -> (observer) do
         -> item { item[0] == :observer && item[1] == observer }
       end
 
@@ -17,11 +17,11 @@ module Micro
       def initialize(subject, list = nil)
         @subject = subject
 
-        @list = (list.kind_of?(Array) ? list : []).flatten.tap(&:compact!)
+        @list = Utils.compact_array(list.kind_of?(Array) ? list : [])
       end
 
       def included?(observer)
-        @list.any?(&SameObserver[observer])
+        @list.any?(&EqualTo[observer])
       end
 
       def attach(observer, options = EMPTY_HASH)
@@ -33,27 +33,46 @@ module Micro
       end
 
       def on(options=EMPTY_HASH)
-        action, callable, with = options[:action], options[:call], options[:with]
+        event, callable, with = options[:event], options[:call], options[:with]
 
-        return self unless action.is_a?(Symbol) && callable.respond_to?(:call)
+        return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-        arg = with.is_a?(Proc) ? with.call(@subject) : subject
+        arg = with.is_a?(Proc) ? with.call(@subject) : (arg || subject)
 
-        @list << [:caller, action, [callable, arg]]
+        @list << [:callable, event, [callable, arg]]
       end
 
       def detach(observer)
-        @list.delete_if(&SameObserver[observer])
+        @list.delete_if(&EqualTo[observer])
 
         self
       end
 
-      def call(action = :call)
-        @list.each do |type, observer, data|
-          if type == :caller && observer == action
-            data[0].call(data[1])
-          elsif type == :observer && observer.respond_to?(action)
-            handler = observer.method(action)
+      def notify(event)
+        notify!(event)
+
+        self
+      end
+
+      def call(*actions)
+        EventsOrActions[actions].each { |act| notify!(act) }
+
+        self
+      end
+
+      private
+
+        def notify!(evt_or_act)
+          @list.each do |strategy, observer, data|
+            call!(observer, strategy, data, with: evt_or_act)
+          end
+        end
+
+        def call!(observer, strategy, data, with:)
+          return data[0].call(data[1]) if strategy == :callable && observer == with
+
+          if strategy == :observer && observer.respond_to?(with)
+            handler = observer.method(with)
 
             return handler.call(@subject) if handler.arity == 1
 
@@ -61,12 +80,7 @@ module Micro
           end
         end
 
-        self
-      end
-
-      alias notify call
-
-      private_constant :EMPTY_HASH
+      private_constant :EMPTY_HASH, :EqualTo
     end
 
   end
