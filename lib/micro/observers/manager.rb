@@ -47,22 +47,24 @@ module Micro
       end
 
       def notify(*events)
-        EventsOrActions[events].each { |act| notify!(act) }
+        broadcast(EventsOrActions[events])
 
         self
       end
 
       def call(options = Utils::EMPTY_HASH)
-        EventsOrActions.fetch_actions(options).each { |act| notify!(act) }
+        broadcast(EventsOrActions.fetch_actions(options))
 
         self
       end
 
       private
 
-        def notify!(evt_or_act)
-          @list.each do |strategy, observer, data|
-            call!(observer, strategy, data, with: evt_or_act)
+        def broadcast(evts_or_acts)
+          evts_or_acts.each do |evt_or_act|
+            @list.each do |strategy, observer, data|
+              call!(observer, strategy, data, with: evt_or_act)
+            end
           end
         end
 
