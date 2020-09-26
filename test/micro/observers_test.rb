@@ -13,7 +13,7 @@ class Micro::ObserversTest < Minitest::Test
     include ::Micro::Observers
 
     after_commit \
-      &call_observers(action: [:print_title, :print_title_with_data])
+      &call_observers(actions: [:print_title, :print_title_with_data])
   end
 
   module TitlePrinter
