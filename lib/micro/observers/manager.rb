@@ -39,9 +39,7 @@ module Micro
 
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-        arg = with.is_a?(Proc) ? with.call(@subject) : (arg || subject)
-
-        @list << [:callable, event, [callable, arg]]
+        @list << [:callable, event, [callable, with]]
       end
 
       def detach(*args)
@@ -75,15 +73,25 @@ module Micro
         end
 
         def call!(observer, strategy, data, with:)
-          return data[0].call(data[1]) if strategy == :callable && observer == with
+          return call_callable(data) if strategy == :callable && observer == with
 
-          if strategy == :observer && observer.respond_to?(with)
-            handler = observer.method(with)
+          return call_observer(observer, with, data) if strategy == :observer
+        end
 
-            return handler.call(@subject) if handler.arity == 1
+        def call_callable(data)
+          callable, arg = data[0], data[1]
 
-            handler.call(@subject, data)
-          end
+          callable_arg = arg.is_a?(Proc) ? arg.call(@subject) : (arg || @subject)
+
+          callable.call(callable_arg)
+        end
+
+        def call_observer(observer, method_name, data)
+          return unless observer.respond_to?(method_name)
+
+          handler = observer.method(method_name)
+
+          handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, data)
         end
 
       private_constant :EqualTo
