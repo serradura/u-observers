@@ -11,5 +11,15 @@ require 'micro/observers'
 
 require_relative 'support'
 
+if activerecord_version = ENV['ACTIVERECORD_VERSION']
+  if activerecord_version < '4.1'
+    require 'minitest/unit'
+
+    module Minitest
+      Test = MiniTest::Unit::TestCase
+    end
+  end
+end
+
 require 'minitest/pride'
 require 'minitest/autorun'

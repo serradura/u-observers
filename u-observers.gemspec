@@ -10,7 +10,6 @@ Gem::Specification.new do |spec|
   spec.description   = %q{Simple and powerful implementation of the observer pattern.}
   spec.homepage      = 'https://github.com/serradura/u-observers'
   spec.license       = 'MIT'
-  spec.required_ruby_version = Gem::Requirement.new('>= 2.2.0')
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = 'https://github.com/serradura/u-observers'
@@ -24,4 +23,9 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
+
+  spec.required_ruby_version = Gem::Requirement.new('>= 2.2.0')
+
+  spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'rake', '~> 13.0'
 end
