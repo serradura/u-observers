@@ -4,6 +4,13 @@ module Micro
   module Observers
 
     class Manager
+      MapObserver = -> (observer, options) { [:observer, observer, options[:context]] }
+
+      MapSubscribers = -> (value) do
+        array = Utils.compact_array(value.kind_of?(Array) ? value : [])
+        array.map { |observer| MapObserver[observer, Utils::EMPTY_HASH] }
+      end
+
       EqualTo = -> (observer) do
         -> subscriber do
           handler = subscriber[0] == :observer ? subscriber[1] : subscriber[2][0]
@@ -20,7 +27,7 @@ module Micro
 
         @subject_changed = false
 
-        @subscribers = Utils.compact_array(subscribers.kind_of?(Array) ? subscribers : [])
+        @subscribers = MapSubscribers.call(subscribers)
       end
 
       def count
@@ -61,7 +68,7 @@ module Micro
         options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
 
         Utils.compact_array(args).each do |observer|
-          @subscribers << [:observer, observer, options[:context]] unless included?(observer)
+          @subscribers << MapObserver[observer, options] unless included?(observer)
         end
 
         self
@@ -114,9 +121,9 @@ module Micro
         def call!(subscriber, event)
           strategy, observer, context = subscriber
 
-          return call_callable(context) if strategy == :callable && observer == event
-
           return call_observer(observer, event, context) if strategy == :observer
+
+          return call_callable(context) if strategy == :callable && observer == event
         end
 
         def call_callable(context)
@@ -135,7 +142,7 @@ module Micro
           handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, context)
         end
 
-      private_constant :EqualTo
+      private_constant :MapObserver, :MapSubscribers, :EqualTo
     end
 
   end
