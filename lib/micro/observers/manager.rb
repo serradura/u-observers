@@ -89,7 +89,7 @@ module Micro
 
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-        @subscribers << [:callable, event, [callable, with]]
+        @subscribers << [:callable, event, [callable, with]] unless included?(callable)
 
         self
       end
