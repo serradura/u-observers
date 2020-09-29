@@ -127,7 +127,8 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      observers.call
+      assert_instance_of(Manager, observers.call)
+
       observers.call(:word_has_been_changed)
 
       refute_predicate(StreamInMemory.history, :empty?)

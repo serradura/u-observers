@@ -35,7 +35,11 @@ module Micro::Observers
     def test_the_detaching_of_one_observer_per_time
       person = Person.new(name: 'Rodrigo')
       person.observers.attach(PersonNamePrinter)
-      person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
+
+      assert_instance_of(
+        Manager,
+        person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
+      )
 
       assert_equal(2, person.observers.count)
       assert_predicate(person.observers, :some?)

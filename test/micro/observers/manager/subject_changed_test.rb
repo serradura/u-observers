@@ -6,7 +6,11 @@ module Micro::Observers
       @memory = []
 
       observers = Manager.new('hello')
-      observers.attach(-> (value) { @memory << String(value).upcase })
+
+      assert_instance_of(
+        Manager,
+        observers.attach(-> (value) { @memory << String(value).upcase })
+      )
 
       # --
 
@@ -18,7 +22,7 @@ module Micro::Observers
 
       assert_predicate(observers, :subject_changed?)
 
-      observers.notify
+      assert_instance_of(Manager, observers.notify)
 
       assert_equal(%w[HELLO], @memory)
 
