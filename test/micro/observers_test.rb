@@ -2,7 +2,7 @@ require 'test_helper'
 
 class Micro::ObserversTest < Minitest::Test
   def setup
-    FakePrinter.history.clear
+    StreamInMemory.history.clear
   end
 
   def test_that_it_has_a_version_number
@@ -12,31 +12,30 @@ class Micro::ObserversTest < Minitest::Test
   class Post < ActiveRecord::Base
     include ::Micro::Observers
 
-    after_commit \
-      &call_observers(actions: [:print_title, :print_title_with_data])
+    after_commit(&notify_observers(:record_has_been_persisted))
   end
 
   module TitlePrinter
-    def self.print_title(post)
-      FakePrinter.puts("Title: #{post.title}")
-    end
-
-    def self.print_title_with_data(post, data)
-      FakePrinter.puts("Title: #{post.title}, from: #{data[:from]}")
+    def self.record_has_been_persisted(post)
+      StreamInMemory.puts("Title: #{post.title}")
     end
   end
 
-  def test_the_observer_execution_using_the_call_method
-    assert_equal(0, FakePrinter.history.size)
+  module TitlePrinterWithContext
+    def self.record_has_been_persisted(post, context)
+      StreamInMemory.puts("Title: #{post.title}, from: #{context[:from]}")
+    end
+  end
 
+  def test_the_notification_using_multiple_observers
     Post.transaction do
       post = Post.new(title: 'Hello world')
-      post.observers.attach(TitlePrinter, data: { from: 'Test 1' })
+      post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'Test 1' })
       post.save
     end
 
-    assert_equal("Title: Hello world", FakePrinter.history[0])
-    assert_equal("Title: Hello world, from: Test 1", FakePrinter.history[1])
+    assert_equal("Title: Hello world", StreamInMemory.history[0])
+    assert_equal("Title: Hello world, from: Test 1", StreamInMemory.history[1])
   end
 
   class Book < ActiveRecord::Base
@@ -47,13 +46,11 @@ class Micro::ObserversTest < Minitest::Test
 
   module LogTheBookCreation
     def self.transaction_completed(book)
-      FakePrinter.puts("The book was successfully created! Title: #{book.title}")
+      StreamInMemory.puts("The book was successfully created! Title: #{book.title}")
     end
   end
 
   def test_the_observer_execution_using_the_notify_method
-    assert_equal(0, FakePrinter.history.size)
-
     Book.transaction do
       book = Book.new(title: 'Observers')
       book.observers.attach(LogTheBookCreation)
@@ -62,7 +59,7 @@ class Micro::ObserversTest < Minitest::Test
 
     assert_equal(
       "The book was successfully created! Title: Observers",
-      FakePrinter.history[0]
+      StreamInMemory.history[0]
     )
   end
 
@@ -74,7 +71,7 @@ class Micro::ObserversTest < Minitest::Test
       book.save
     end
 
-    assert_predicate(FakePrinter.history, :empty?)
+    assert_predicate(StreamInMemory.history, :empty?)
   end
 
   class Person
@@ -87,21 +84,19 @@ class Micro::ObserversTest < Minitest::Test
     end
 
     def name=(new_name)
-      changed = new_name != name
+      observers.subject_changed(new_name != name)
 
       @name = new_name
 
-      observers.notify(:name_has_been_changed) and return if changed
+      observers.notify(:name_has_been_changed)
     end
   end
 
   PrintPersonName = -> (data) do
-    FakePrinter.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
+    StreamInMemory.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
   end
 
   def test_observers_caller
-    assert_equal(0, FakePrinter.history.size)
-
     rand_number = rand
 
     person = Person.new(name: 'Rodrigo')
@@ -115,16 +110,16 @@ class Micro::ObserversTest < Minitest::Test
 
     person.name = 'Serradura'
 
-    assert_equal("Person name: Serradura, number: #{rand_number}", FakePrinter.history[0])
+    assert_equal("Person name: Serradura, number: #{rand_number}", StreamInMemory.history[0])
   end
 
   class Doer1
-    def do_a(_); FakePrinter.puts('do_a 1') ;end
-    def do_b(_); FakePrinter.puts('do_b 1') ;end
+    def do_a(_); StreamInMemory.puts('do_a 1') ;end
+    def do_b(_); StreamInMemory.puts('do_b 1') ;end
   end
 
   class Doer2
-    def do_b(_); FakePrinter.puts('do_b 2') ;end
+    def do_b(_); StreamInMemory.puts('do_b 2') ;end
   end
 
   def test_calling_actions
@@ -138,25 +133,25 @@ class Micro::ObserversTest < Minitest::Test
 
     # -
 
-    person.observers.call(action: :do_a)
+    person.observers.call(:do_a)
 
-    assert_equal(1, FakePrinter.history.size)
+    assert_equal(1, StreamInMemory.history.size)
 
-    person.observers.call(action: [:do_b])
+    person.observers.call([:do_b])
 
-    assert_equal(3, FakePrinter.history.size)
+    assert_equal(3, StreamInMemory.history.size)
 
-    person.observers.call(action: [:do_a, :do_b])
+    person.observers.call([:do_a, :do_b])
 
-    assert_equal(6, FakePrinter.history.size)
+    assert_equal(6, StreamInMemory.history.size)
 
-    person.observers.call(actions: [:do_a, :do_b])
+    person.observers.call(:do_a, :do_b)
 
-    assert_equal(9, FakePrinter.history.size)
+    assert_equal(9, StreamInMemory.history.size)
 
     assert_equal(
       ['do_a 1', 'do_b 1', 'do_b 2', 'do_a 1', 'do_b 1', 'do_b 2', 'do_a 1', 'do_b 1', 'do_b 2'],
-      FakePrinter.history
+      StreamInMemory.history
     )
 
     # --
@@ -165,6 +160,6 @@ class Micro::ObserversTest < Minitest::Test
 
     person.observers.call(actions: [:do_a, :do_b])
 
-    assert_equal(9, FakePrinter.history.size)
+    assert_equal(9, StreamInMemory.history.size)
   end
 end
