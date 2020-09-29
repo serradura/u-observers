@@ -23,6 +23,18 @@ module Micro
         @subscribers = Utils.compact_array(subscribers.kind_of?(Array) ? subscribers : [])
       end
 
+      def count
+        @subscribers.size
+      end
+
+      def none?
+        @subscribers.empty?
+      end
+
+      def some?
+        !none?
+      end
+
       def subject_changed?
         @subject_changed
       end
