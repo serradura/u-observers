@@ -5,30 +5,59 @@ module Micro
 
     class Manager
       EqualTo = -> (observer) do
-        -> item { item[0] == :observer && item[1] == observer }
+        -> subscriber do
+          handler = subscriber[0] == :observer ? subscriber[1] : subscriber[2][0]
+          handler == observer
+        end
       end
 
       def self.for(subject)
         new(subject)
       end
 
-      def initialize(subject, list = nil)
+      def initialize(subject, subscribers: nil)
         @subject = subject
 
-        @list = Utils.compact_array(list.kind_of?(Array) ? list : [])
+        @subject_changed = false
+
+        @subscribers = Utils.compact_array(subscribers.kind_of?(Array) ? subscribers : [])
+      end
+
+      def subject_changed?
+        @subject_changed
+      end
+
+      def subject_changed(state)
+        if state == true || state == false
+          @subject_changed = state
+
+          return self
+        end
+
+        raise ArgumentError, 'expected a boolean (true, false)'
+      end
+
+      def subject_changed!
+        subject_changed(true)
       end
 
       def included?(observer)
-        @list.any?(&EqualTo[observer])
+        @subscribers.any?(&EqualTo[observer])
       end
 
       def attach(*args)
         options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
 
         Utils.compact_array(args).each do |observer|
-          if options[:allow_duplication] || !included?(observer)
-            @list << [:observer, observer, options[:data]]
-          end
+          @subscribers << [:observer, observer, options[:context]] unless included?(observer)
+        end
+
+        self
+      end
+
+      def detach(*args)
+        Utils.compact_array(args).each do |observer|
+          @subscribers.delete_if(&EqualTo[observer])
         end
 
         self
@@ -39,59 +68,59 @@ module Micro
 
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-        @list << [:callable, event, [callable, with]]
+        @subscribers << [:callable, event, [callable, with]]
       end
 
-      def detach(*args)
-        Utils.compact_array(args).each do |observer|
-          @list.delete_if(&EqualTo[observer])
-        end
+      def notify!(events)
+        return self unless subject_changed?
+
+        broadcast(events)
+
+        subject_changed(false)
 
         self
       end
 
       def notify(*events)
-        broadcast(EventsOrActions[events])
-
-        self
+        notify!(Events[events])
       end
 
-      def call(options = Utils::EMPTY_HASH)
-        broadcast(EventsOrActions.fetch_actions(options))
+      def call(*events)
+        broadcast(Events[events])
 
         self
       end
 
       private
 
-        def broadcast(evts_or_acts)
-          evts_or_acts.each do |evt_or_act|
-            @list.each do |strategy, observer, data|
-              call!(observer, strategy, data, with: evt_or_act)
-            end
+        def broadcast(events)
+          events.each do |event|
+            @subscribers.each { |subscriber| call!(subscriber, event) }
           end
         end
 
-        def call!(observer, strategy, data, with:)
-          return call_callable(data) if strategy == :callable && observer == with
+        def call!(subscriber, event)
+          strategy, observer, context = subscriber
 
-          return call_observer(observer, with, data) if strategy == :observer
+          return call_callable(context) if strategy == :callable && observer == event
+
+          return call_observer(observer, event, context) if strategy == :observer
         end
 
-        def call_callable(data)
-          callable, arg = data[0], data[1]
+        def call_callable(context)
+          callable, with = context[0], context[1]
 
-          callable_arg = arg.is_a?(Proc) ? arg.call(@subject) : (arg || @subject)
+          arg = with.is_a?(Proc) ? with.call(@subject) : (with || @subject)
 
-          callable.call(callable_arg)
+          callable.call(arg)
         end
 
-        def call_observer(observer, method_name, data)
+        def call_observer(observer, method_name, context)
           return unless observer.respond_to?(method_name)
 
           handler = observer.method(method_name)
 
-          handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, data)
+          handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, context)
         end
 
       private_constant :EqualTo
