@@ -88,6 +88,8 @@ module Micro
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
         @subscribers << [:callable, event, [callable, with]]
+
+        self
       end
 
       def notify!(events)
@@ -137,7 +139,7 @@ module Micro
         def call_observer(observer, method_name, context)
           return unless observer.respond_to?(method_name)
 
-          handler = observer.method(method_name)
+          handler = observer.is_a?(Proc) ? observer : observer.method(method_name)
 
           handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, context)
         end
