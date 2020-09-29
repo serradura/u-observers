@@ -36,15 +36,12 @@ module Micro::Observers
       person = Person.new(name: 'Rodrigo')
       person.observers.attach(PersonNamePrinter)
 
-      assert_instance_of(
-        Manager,
-        person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
-      )
+      person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
 
       assert_equal(2, person.observers.count)
       assert_predicate(person.observers, :some?)
 
-      person.observers.detach(PersonNamePrinter)
+      assert_instance_of(Manager, person.observers.detach(PersonNamePrinter))
 
       assert_equal(1, person.observers.count)
 
