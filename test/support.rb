@@ -19,7 +19,7 @@ end
 
 require 'singleton'
 
-class FakePrinter
+class StreamInMemory
   include Singleton
 
   def self.history; instance.history; end
