@@ -58,5 +58,53 @@ module Micro::Observers
       person.observers.attach(PersonNamePrinter, PrintPersonName)
       assert_equal(2, person.observers.count)
     end
+
+    def test_the_avoidance_of_attaching_an_invalid_subscriber
+      person = Person.new(name: 'Rodrigo')
+
+      assert_instance_of(Manager, person.observers.on(event: 'foo', call: -> {}))
+      assert_equal(0, person.observers.count)
+
+      assert_instance_of(Manager, person.observers.on(event: :foo, call: nil))
+      assert_equal(0, person.observers.count)
+    end
+
+    def test_the_handler_argument_definition
+      person = Person.new(name: 'Rodrigo')
+
+      person.observers.on(
+        event: :name_has_been_changed,
+        call: -> subject { assert_instance_of(Person, subject) }
+      )
+
+      person.observers.on(
+        event: :name_has_been_changed,
+        call: -> value { assert_equal(123, value) },
+        with: 123
+      )
+
+      person.observers.on(
+        event: :name_has_been_changed,
+        call: -> subject { assert_instance_of(Person, subject) },
+        with: nil
+      )
+
+      person.observers.on(
+        event: :name_has_been_changed,
+        call: -> data { assert_equal({person: person}, data) },
+        with: -> subject { {person: subject} }
+      )
+
+      assert_equal(4, person.observers.count)
+
+      person.observers.on(
+        event: :name_has_been_updated,
+        call: -> subject { raise }
+      )
+
+      assert_equal(5, person.observers.count)
+
+      person.name = 'Serradura'
+    end
   end
 end
