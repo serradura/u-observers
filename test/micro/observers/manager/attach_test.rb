@@ -31,10 +31,12 @@ module Micro::Observers
     def test_the_attaching_of_one_observer_per_time
       person = Person.new(name: 'Rodrigo')
 
-      person.observers.attach(PersonNamePrinter)
+      assert_instance_of(Manager, person.observers.attach(PersonNamePrinter))
+
       assert_equal(1, person.observers.count)
 
       person.observers.attach(PersonNamePrinter)
+
       assert_equal(1, person.observers.count)
 
       assert_instance_of(
