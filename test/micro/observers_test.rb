@@ -63,17 +63,6 @@ class Micro::ObserversTest < Minitest::Test
     )
   end
 
-  def test_an_observer_deletion
-    Book.transaction do
-      book = Book.new(title: 'Observers')
-      book.observers.attach(TitlePrinter, data: { from: 'Test 2' })
-      book.observers.detach(TitlePrinter)
-      book.save
-    end
-
-    assert_predicate(StreamInMemory.history, :empty?)
-  end
-
   class Person
     include Micro::Observers
 
