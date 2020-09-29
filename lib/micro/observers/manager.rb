@@ -46,6 +46,8 @@ module Micro
         @subject_changed
       end
 
+      INVALID_BOOLEAN_ERROR = 'expected a boolean (true, false)'.freeze
+
       def subject_changed(state)
         if state == true || state == false
           @subject_changed = state
@@ -53,7 +55,7 @@ module Micro
           return self
         end
 
-        raise ArgumentError, 'expected a boolean (true, false)'
+        raise ArgumentError, INVALID_BOOLEAN_ERROR
       end
 
       def subject_changed!
@@ -144,7 +146,7 @@ module Micro
           handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, context)
         end
 
-      private_constant :MapObserver, :MapSubscribers, :EqualTo
+      private_constant :MapObserver, :MapSubscribers, :EqualTo, :INVALID_BOOLEAN_ERROR
     end
 
   end
