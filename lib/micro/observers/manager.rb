@@ -94,16 +94,6 @@ module Micro
         self
       end
 
-      def notify!(events)
-        return self unless subject_changed?
-
-        broadcast(events)
-
-        subject_changed(false)
-
-        self
-      end
-
       def notify(*events)
         notify!(Events[events])
       end
@@ -113,6 +103,18 @@ module Micro
 
         self
       end
+
+      protected
+
+        def notify!(events)
+          return self unless subject_changed?
+
+          broadcast(events)
+
+          subject_changed(false)
+
+          self
+        end
 
       private
 
