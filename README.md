@@ -49,9 +49,9 @@ gem 'u-observers'
 
 # Compatibility
 
-| u-observers   | branch  | ruby     |  activerecord |
-| -------------- | ------- | -------- | ------------- |
-| 0.9.0          | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| u-observers | branch  | ruby     | activerecord  |
+| ----------- | ------- | -------- | ------------- |
+| 0.9.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Note**: The ActiveRecord isn't a dependency, but the static methods that are included by the gem were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
 
@@ -59,7 +59,49 @@ gem 'u-observers'
 
 ## Usage
 
-TODO: Write usage instructions here
+Any class with `Micro::Observers` module included can notify events to attached observers.
+
+```ruby
+require 'securerandom'
+
+class Order
+  include Micro::Observers
+
+  attr_reader :code
+
+  def initialize
+    @code, @status = SecureRandom.alphanumeric, :draft
+  end
+
+  def canceled?
+    @status == :canceled
+  end
+
+  def cancel!
+    return if canceled?
+
+    @status = :canceled
+
+    observers.subject_changed!
+    observers.notify(:canceled) and return self
+  end
+end
+
+module OrderEvents
+  def self.canceled(order)
+    puts "The order #(#{order.code}) has been canceled."
+  end
+end
+
+order = Order.new
+order.observers.attach(OrderEvents)
+order.canceled? # false
+order.cancel!   # the OrderEvents.canceled() method will be called.
+order.canceled? # true
+
+# you will see a message like the below one in your terminal:
+# The order #(CgLf94tYpTUif6Ur) has been canceled.
+```
 
 ## Development
 
