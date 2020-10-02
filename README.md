@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">📻 μ-observers</h1>
+  <h1 align="center">👀 μ-observers</h1>
   <p align="center"><i>Simple and powerful implementation of the observer pattern.</i></p>
   <br>
 </p>
