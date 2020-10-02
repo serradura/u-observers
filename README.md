@@ -44,12 +44,12 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
 Add this line to your application's Gemfile and `bundle install`:
 
 ```ruby
-gem 'u-attributes'
+gem 'u-observers'
 ```
 
 # Compatibility
 
-| u-attributes   | branch  | ruby     |  activerecord |
+| u-observers   | branch  | ruby     |  activerecord |
 | -------------- | ------- | -------- | ------------- |
 | 0.9.0          | main    | >= 2.2.0 | >= 3.2, < 6.1 |
 
