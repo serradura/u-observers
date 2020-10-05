@@ -1,11 +1,12 @@
 require 'test_helper'
 
-if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
-  class Micro::ObserversTest < Minitest::Test
-    def setup
-      StreamInMemory.history.clear
-    end
 
+class Micro::ObserversTest < Minitest::Test
+  def setup
+    StreamInMemory.history.clear
+  end
+
+  if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
     class Book < ActiveRecord::Base
       include ::Micro::Observers::For::ActiveRecord
 
@@ -59,44 +60,44 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
       assert_equal('Title: Hello world', StreamInMemory.history[0])
       assert_equal('Title: Hello world, from: Test 1', StreamInMemory.history[1])
     end
+  end
 
-    class Person
-      include Micro::Observers
+  class Person
+    include Micro::Observers
 
-      attr_reader :name
+    attr_reader :name
 
-      def initialize(name:)
-        @name = name
-      end
-
-      def name=(new_name)
-        observers.subject_changed(new_name != name)
-
-        @name = new_name
-
-        observers.notify(:name_has_been_changed)
-      end
+    def initialize(name)
+      @name = name
     end
 
-    PrintPersonName = -> (data) do
-      StreamInMemory.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
+    def name=(new_name)
+      observers.subject_changed(new_name != @name)
+
+      return unless observers.subject_changed?
+
+      @name = new_name
+
+      observers.notify(:name_has_been_changed)
     end
+  end
 
-    def test_observers_caller
-      rand_number = rand
+  PrintPersonName = -> (data) do
+    StreamInMemory.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
+  end
 
-      person = Person.new(name: 'Rodrigo')
-      person.observers.on(
-        event: :name_has_been_changed,
-        call: PrintPersonName,
-        with: -> person do
-          { person: person, number: rand_number }
-        end
-      )
+  def test_observers_caller
+    rand_number = rand
 
-      person.name = 'Serradura'
+    person = Person.new('Rodrigo')
+    person.observers.on(
+      event: :name_has_been_changed,
+      call: PrintPersonName,
+      with: -> person { {person: person, number: rand_number} }
+    )
 
-      assert_equal("Person name: Serradura, number: #{rand_number}", StreamInMemory.history[0])
-    end
+    person.name = 'Serradura'
+
+    assert_equal("Person name: Serradura, number: #{rand_number}", StreamInMemory.history[0])
   end
 end
