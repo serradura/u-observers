@@ -10,12 +10,12 @@ module Micro
       def notify_observers!(events)
         proc do |object|
           object.observers.subject_changed!
-          object.observers.send(:notify!, events)
+          object.observers.send(:broadcast_if_subject_changed, events)
         end
       end
 
       def notify_observers(*events)
-        notify_observers!(Events[events])
+        notify_observers!(Events.fetch(events))
       end
     end
 

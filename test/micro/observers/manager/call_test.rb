@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerNotifyVsCallTest < Minitest::Test
+  class ManagerCallTest < Minitest::Test
     def setup
       StreamInMemory.history.clear
     end
@@ -32,8 +32,8 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      observers.notify(:call)
-      observers.notify(:word_has_been_changed)
+      observers.call
+      observers.call(:word_has_been_changed)
 
       assert_predicate(StreamInMemory.history, :empty?)
 
@@ -45,8 +45,8 @@ module Micro::Observers
 
       assert observers.subject_changed?
 
-      observers.notify(:call)
-      observers.notify(:word_has_been_changed)
+      observers.call
+      observers.call(:word_has_been_changed)
 
       refute observers.subject_changed?
 
@@ -58,8 +58,8 @@ module Micro::Observers
 
       assert observers.subject_changed?
 
-      observers.notify(:word_has_been_changed)
-      observers.notify(:call)
+      observers.call(:word_has_been_changed)
+      observers.call
 
       refute observers.subject_changed?
 
@@ -78,8 +78,8 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      observers.notify(:call)
-      observers.notify(:word_has_been_changed)
+      observers.call
+      observers.call(:word_has_been_changed)
 
       assert_predicate(StreamInMemory.history, :empty?)
 
@@ -91,8 +91,8 @@ module Micro::Observers
 
       assert observers.subject_changed?
 
-      observers.notify(:call, :word_has_been_changed)
-      observers.notify(:call, :word_has_been_changed)
+      observers.call(:call, :word_has_been_changed)
+      observers.call(:call, :word_has_been_changed)
 
       refute observers.subject_changed?
 
@@ -104,8 +104,8 @@ module Micro::Observers
 
       assert observers.subject_changed?
 
-      observers.notify(:word_has_been_changed, :call)
-      observers.notify(:word_has_been_changed, :call)
+      observers.call(:word_has_been_changed, :call)
+      observers.call(:word_has_been_changed, :call)
 
       refute observers.subject_changed?
 
@@ -127,9 +127,9 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_instance_of(Manager, observers.call)
+      assert_instance_of(Manager, observers.call!)
 
-      observers.call(:word_has_been_changed)
+      observers.call!(:word_has_been_changed)
 
       refute_predicate(StreamInMemory.history, :empty?)
 
@@ -139,8 +139,8 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      observers.call(:word_has_been_changed)
-      observers.call
+      observers.call!(:word_has_been_changed)
+      observers.call!
 
       assert_equal(
         ['world', 'HELLO', 'HELLO', 'WORLD', 'world', 'WORLD'],
@@ -160,7 +160,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      observers.call(:call, :word_has_been_changed)
+      observers.call!(:call, :word_has_been_changed)
 
       refute_predicate(StreamInMemory.history, :empty?)
 
@@ -170,7 +170,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      observers.call(:word_has_been_changed, :call)
+      observers.call!(:word_has_been_changed, :call)
 
       assert_equal(
         ['world', 'HELLO', 'HELLO', 'WORLD', 'world', 'WORLD'],
