@@ -1,19 +1,21 @@
-require 'active_record'
-require 'sqlite3'
+if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
+  require 'active_record'
+  require 'sqlite3'
 
-ActiveRecord::Base.establish_connection(
-  host: 'localhost',
-  adapter: 'sqlite3',
-  database: ':memory:'
-)
+  ActiveRecord::Base.establish_connection(
+    host: 'localhost',
+    adapter: 'sqlite3',
+    database: ':memory:'
+  )
 
-ActiveRecord::Schema.define do
-  create_table :posts do |t|
-    t.column :title, :string
-  end
+  ActiveRecord::Schema.define do
+    create_table :posts do |t|
+      t.column :title, :string
+    end
 
-  create_table :books do |t|
-    t.column :title, :string
+    create_table :books do |t|
+      t.column :title, :string
+    end
   end
 end
 

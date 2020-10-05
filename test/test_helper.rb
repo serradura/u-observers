@@ -19,6 +19,10 @@ if activerecord_version = ENV['ACTIVERECORD_VERSION']
       Test = MiniTest::Unit::TestCase
     end
   end
+
+  if activerecord_version < '6.1'
+    require 'u-observers/for/active_record'
+  end
 end
 
 require 'minitest/pride'
