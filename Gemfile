@@ -23,16 +23,18 @@ simplecov_version =
   else '~> 0.19'
   end
 
-sqlite3 =
-  case activerecord
-  when /\A6\.0/, nil then '~> 1.4.0'
-  else '~> 1.3.0'
-  end
-
 group :test do
   gem 'minitest', activerecord_version < '4.1' ? '~> 4.2' : '~> 5.0'
   gem 'simplecov', simplecov_version, require: false
 
-  gem 'sqlite3', sqlite3
-  gem 'activerecord', activerecord, require: 'active_record'
+  if activerecord
+    sqlite3 =
+      case activerecord
+      when /\A6\.0/, nil then '~> 1.4.0'
+      else '~> 1.3.0'
+      end
+
+    gem 'sqlite3', sqlite3
+    gem 'activerecord', activerecord, require: 'active_record'
+  end
 end
