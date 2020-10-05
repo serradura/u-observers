@@ -4,19 +4,16 @@ module Micro
   module Observers
 
     class Manager
-      MapObserver = -> (observer, options) { [:observer, observer, options[:context]] }
+      MapSubscriber = -> (observer, options) { [:observer, observer, options[:context]] }
 
       MapSubscribers = -> (value) do
         array = Utils.compact_array(value.kind_of?(Array) ? value : [])
-        array.map { |observer| MapObserver[observer, Utils::EMPTY_HASH] }
+        array.map { |observer| MapSubscriber[observer, Utils::EMPTY_HASH] }
       end
 
-      EqualTo = -> (observer) do
-        -> subscriber do
-          handler = subscriber[0] == :observer ? subscriber[1] : subscriber[2][0]
-          handler == observer
-        end
-      end
+      GetObserver = -> subscriber { subscriber[0] == :observer ? subscriber[1] : subscriber[2][0] }
+
+      EqualTo = -> (observer) { -> subscriber { GetObserver[subscriber] == observer } }
 
       def self.for(subject)
         new(subject)
@@ -70,7 +67,7 @@ module Micro
         options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
 
         Utils.compact_array(args).each do |observer|
-          @subscribers << MapObserver[observer, options] unless included?(observer)
+          @subscribers << MapSubscriber[observer, options] unless included?(observer)
         end
 
         self
@@ -120,6 +117,12 @@ module Micro
         self
       end
 
+      def inspect
+        subs = @subscribers.empty? ? @subscribers : @subscribers.map(&GetObserver)
+
+        '<#%s @subject=%s @subject_changed=%p @subscribers=%p>' % [self.class, @subject, @subject_changed, subs]
+      end
+
       private
 
         def broadcast_if_subject_changed(events)
@@ -162,7 +165,7 @@ module Micro
         end
 
       private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT
-      private_constant :MapObserver, :MapSubscribers, :EqualTo
+      private_constant :MapSubscriber, :MapSubscribers, :GetObserver, :EqualTo
     end
 
   end
