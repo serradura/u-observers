@@ -25,7 +25,7 @@ class Micro::ObserversTest < Minitest::Test
     end
 
     assert_equal(
-      "The book was successfully created! Title: Observers",
+      'The book was successfully created! Title: Observers',
       StreamInMemory.history[0]
     )
   end
@@ -55,8 +55,8 @@ class Micro::ObserversTest < Minitest::Test
       post.save
     end
 
-    assert_equal("Title: Hello world", StreamInMemory.history[0])
-    assert_equal("Title: Hello world, from: Test 1", StreamInMemory.history[1])
+    assert_equal('Title: Hello world', StreamInMemory.history[0])
+    assert_equal('Title: Hello world, from: Test 1', StreamInMemory.history[1])
   end
 
   class Person
