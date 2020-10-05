@@ -28,12 +28,18 @@ This gem implements the observer pattern [[1]](https://en.wikipedia.org/wiki/Obs
 
 Ruby's standard library [has an abstraction](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) that enables you to use this pattern. But its design can conflict with other mainstream libraries, like the [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), which also has the [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed) method. In this case, the behavior of the Stdlib will be been compromised.
 
-Because of this issue, I decided to create a gem that encapsulates the pattern without changing the object's implementation so much. The `Micro::Observers` includes one instance method and two static methods.
+Because of this issue, I decided to create a gem that encapsulates the pattern without changing the object's implementation so much. The `Micro::Observers` includes just one instance method in the target class (its instance will be the observed subject).
 
 # Table of contents <!-- omit in toc -->
 - [Installation](#installation)
 - [Compatibility](#compatibility)
   - [Usage](#usage)
+    - [Passing a context for your observers](#passing-a-context-for-your-observers)
+    - [Calling the observers](#calling-the-observers)
+    - [Notifying observers without marking them as changed](#notifying-observers-without-marking-them-as-changed)
+    - [ActiveRecord and ActiveModel integrations](#activerecord-and-activemodel-integrations)
+      - [notify_observers_on()](#notify_observers_on)
+      - [notify_observers()](#notify_observers)
   - [Development](#development)
   - [Contributing](#contributing)
   - [License](#license)
@@ -51,9 +57,9 @@ gem 'u-observers'
 
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
-| 0.9.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 1.0.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
 
-> **Note**: The ActiveRecord isn't a dependency, but the static methods that are included by the gem were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
+> **Note**: The ActiveRecord isn't a dependency, but you could add a module to enable some static methods that were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
 
 [⬆️ Back to Top](#table-of-contents-)
 
@@ -78,7 +84,7 @@ class Order
   end
 
   def cancel!
-    return if canceled?
+    return self if canceled?
 
     @status = :canceled
 
@@ -94,14 +100,189 @@ module OrderEvents
 end
 
 order = Order.new
-order.observers.attach(OrderEvents)
-order.canceled? # false
-order.cancel!   # the OrderEvents.canceled() method will be called.
-order.canceled? # true
+#<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
-# you will see a message like the below one in your terminal:
-# The order #(CgLf94tYpTUif6Ur) has been canceled.
+order.observers.attach(OrderEvents) # attaching multiple observers. e.g. observers.attach(A, B, C)
+# <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
+
+order.canceled?
+# false
+
+order.cancel!
+# The message below will be printed by the observer (OrderEvents):
+# The order #(X0o9yf1GsdQFvLR4) has been canceled
+
+order.canceled?
+# true
 ```
+
+**Highlights of the previous example:**
+
+To avoid an undesired behavior, do you need to mark the subject as changed before notify your observers about some event.
+
+You can do this when using the `#subject_changed!` method. It will automatically mark the subject as changed.
+
+But if you need to apply some conditional to mark a change, you can use the `#subject_changed` method. e.g. `observers.subject_changed(name != new_name)`
+
+The `#notify` method always requires an event to make a broadcast. So, if you try to use it without one or more events (symbol values) you will get an exception.
+
+```ruby
+order.observers.notify
+# ArgumentError (no events (expected at least 1))
+```
+
+[⬆️ Back to Top](#table-of-contents-)
+
+### Passing a context for your observers
+
+To pass a context (any kind of Ruby object) for one or more observers, you will need to use the `context:` keyword as the last argument of the `#attach` method.
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.subject_changed!
+    observers.notify(:canceled)
+    self
+  end
+end
+
+module OrderEvents
+  def self.canceled(order, context)
+    puts "The order #(#{order.code}) has been canceled. (from: #{context[:from]})"
+  end
+end
+
+order = Order.new
+order.observers.attach(OrderEvents, context: { from: 'example #2' ) # attaching multiple observers. e.g. observers.attach(A, B, context: {hello: :world})
+order.cancel!
+# The message below will be printed by the observer (OrderEvents):
+# The order #(70196221441820) has been canceled. (from: example #2)
+```
+
+[⬆️ Back to Top](#table-of-contents-)
+
+### Calling the observers
+
+You can use a callable (a class, module, or object that responds to the call method) to be your observers.
+To do this, you only need make use of the method `#call` instead of `#notify`.
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.subject_changed!
+    observers.call # in practice, this is a shortcut to observers.notify(:call)
+    self
+  end
+end
+
+OrderCancellation = -> (order) { puts "The order #(#{order.object_id}) has been canceled." }
+
+order = Order.new
+order.observers.attach(OrderCancellation)
+order.cancel!
+# The message below will be printed by the observer (OrderEvents):
+# The order #(70196221441820) has been canceled.
+```
+
+PS: The `observers.call` can receive one or more events, but in this case, the default event (`call`) won't be transmitted.a
+
+[⬆️ Back to Top](#table-of-contents-)
+
+### Notifying observers without marking them as changed
+
+This feature needs to be used with caution!
+
+If you use the methods `#notify!` or `#call!` you won't need to mark observers with `#subject_changed`.
+
+[⬆️ Back to Top](#table-of-contents-)
+
+### ActiveRecord and ActiveModel integrations
+
+To make use of this feature you need to require an additional module (`require 'u-observers/for/active_record'`).
+
+Gemfile example:
+```ruby
+gem 'u-observers', require: 'u-observers/for/active_record'
+```
+
+This feature will expose modules that could be used to add macros (static methods) that were designed to work with `ActiveModel`/`ActiveRecord` callbacks. e.g:
+
+
+#### notify_observers_on()
+
+The `notify_observers_on` allows you to pass one or more `ActiveModel`/`ActiveRecord` callbacks, that will be used to notify your object observers.
+
+```ruby
+class Post < ActiveRecord::Base
+  include ::Micro::Observers::For::ActiveRecord
+
+  notify_observers_on(:after_commit) # passing multiple callbacks. e.g. notify_observers_on(:before_save, :after_commit)
+end
+
+module TitlePrinter
+  def self.after_commit(post)
+    puts "Title: #{post.title}"
+  end
+end
+
+module TitlePrinterWithContext
+  def self.after_commit(post, context)
+    puts "Title: #{post.title} (from: #{context[:from]})"
+  end
+end
+
+Post.transaction do
+  post = Post.new(title: 'Hello world')
+  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example 4' })
+  post.save
+end
+# The message below will be printed by the observer (OrderEvents):
+# Title: Hello world
+# Title: Hello world (from: example 4)
+```
+
+[⬆️ Back to Top](#table-of-contents-)
+
+#### notify_observers()
+
+The `notify_observers` allows you to pass one or more *events*, that will be used to notify after the execution of some `ActiveModel`/`ActiveRecord` callback.
+
+```ruby
+class Post < ActiveRecord::Base
+  include ::Micro::Observers::For::ActiveRecord
+
+  after_commit(&notify_observers(:transaction_completed))
+end
+
+module TitlePrinter
+  def self.transaction_completed(post)
+    puts("Title: #{post.title}")
+  end
+end
+
+module TitlePrinterWithContext
+  def self.transaction_completed(post, context)
+    puts("Title: #{post.title} (from: #{context[:from]})")
+  end
+end
+
+Post.transaction do
+  post = Post.new(title: 'Olá mundo')
+  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example 5' })
+  post.save
+end
+# The message below will be printed by the observer (OrderEvents):
+# Title: Olá mundo
+# Title: Olá mundo (from: example 5)
+```
+
+PS: You can use `include ::Micro::Observers::For::ActiveModel` if your class only makes use of the `ActiveModel` and all the previous examples will work.
+
+[⬆️ Back to Top](#table-of-contents-)
 
 ## Development
 

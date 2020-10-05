@@ -4,19 +4,16 @@ module Micro
   module Observers
 
     class Manager
-      MapObserver = -> (observer, options) { [:observer, observer, options[:context]] }
+      MapSubscriber = -> (observer, options) { [:observer, observer, options[:context]] }
 
       MapSubscribers = -> (value) do
         array = Utils.compact_array(value.kind_of?(Array) ? value : [])
-        array.map { |observer| MapObserver[observer, Utils::EMPTY_HASH] }
+        array.map { |observer| MapSubscriber[observer, Utils::EMPTY_HASH] }
       end
 
-      EqualTo = -> (observer) do
-        -> subscriber do
-          handler = subscriber[0] == :observer ? subscriber[1] : subscriber[2][0]
-          handler == observer
-        end
-      end
+      GetObserver = -> subscriber { subscriber[0] == :observer ? subscriber[1] : subscriber[2][0] }
+
+      EqualTo = -> (observer) { -> subscriber { GetObserver[subscriber] == observer } }
 
       def self.for(subject)
         new(subject)
@@ -46,7 +43,7 @@ module Micro
         @subject_changed
       end
 
-      INVALID_BOOLEAN_ERROR = 'expected a boolean (true, false)'.freeze
+      INVALID_BOOLEAN_MSG = 'expected a boolean (true, false)'.freeze
 
       def subject_changed(state)
         if state == true || state == false
@@ -55,7 +52,7 @@ module Micro
           return self
         end
 
-        raise ArgumentError, INVALID_BOOLEAN_ERROR
+        raise ArgumentError, INVALID_BOOLEAN_MSG
       end
 
       def subject_changed!
@@ -70,7 +67,7 @@ module Micro
         options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
 
         Utils.compact_array(args).each do |observer|
-          @subscribers << MapObserver[observer, options] unless included?(observer)
+          @subscribers << MapSubscriber[observer, options] unless included?(observer)
         end
 
         self
@@ -95,52 +92,61 @@ module Micro
       end
 
       def notify(*events)
-        notify!(Events[events])
-      end
-
-      def call(*events)
-        broadcast(Events[events])
+        broadcast_if_subject_changed(Events.fetch(events))
 
         self
       end
 
-      protected
+      def notify!(*events)
+        broadcast(Events.fetch(events))
 
-        def notify!(events)
-          return self unless subject_changed?
+        self
+      end
+
+      CALL_EVENT = [:call].freeze
+
+      def call(*events)
+        broadcast_if_subject_changed(Events[events, default: CALL_EVENT])
+
+        self
+      end
+
+      def call!(*events)
+        broadcast(Events[events, default: CALL_EVENT])
+
+        self
+      end
+
+      def inspect
+        subs = @subscribers.empty? ? @subscribers : @subscribers.map(&GetObserver)
+
+        '<#%s @subject=%s @subject_changed=%p @subscribers=%p>' % [self.class, @subject, @subject_changed, subs]
+      end
+
+      private
+
+        def broadcast_if_subject_changed(events)
+          return unless subject_changed?
 
           broadcast(events)
 
           subject_changed(false)
-
-          self
         end
 
-      private
-
         def broadcast(events)
+          return if @subscribers.empty?
+
           events.each do |event|
-            @subscribers.each { |subscriber| call!(subscriber, event) }
+            @subscribers.each do |strategy, observer, context|
+              case strategy
+              when :observer then notify_observer(observer, event, context)
+              when :callable then notify_callable(observer, event, context)
+              end
+            end
           end
         end
 
-        def call!(subscriber, event)
-          strategy, observer, context = subscriber
-
-          return call_observer(observer, event, context) if strategy == :observer
-
-          return call_callable(context) if strategy == :callable && observer == event
-        end
-
-        def call_callable(context)
-          callable, with = context[0], context[1]
-
-          arg = with.is_a?(Proc) ? with.call(@subject) : (with || @subject)
-
-          callable.call(arg)
-        end
-
-        def call_observer(observer, method_name, context)
+        def notify_observer(observer, method_name, context)
           return unless observer.respond_to?(method_name)
 
           handler = observer.is_a?(Proc) ? observer : observer.method(method_name)
@@ -148,7 +154,18 @@ module Micro
           handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, context)
         end
 
-      private_constant :MapObserver, :MapSubscribers, :EqualTo, :INVALID_BOOLEAN_ERROR
+        def notify_callable(expected_event, event, context)
+          return if expected_event != event
+
+          callable, with = context[0], context[1]
+
+          arg = with.is_a?(Proc) ? with.call(@subject) : (with || @subject)
+
+          callable.call(arg)
+        end
+
+      private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT
+      private_constant :MapSubscriber, :MapSubscribers, :GetObserver, :EqualTo
     end
 
   end

@@ -19,7 +19,7 @@ module Micro::Observers
 
       assert_predicate(observers, :subject_changed?)
 
-      observers.notify
+      observers.call
 
       assert_equal(%w[HELLO], @memory)
 
@@ -35,7 +35,7 @@ module Micro::Observers
 
       refute_predicate(observers, :subject_changed?)
 
-      observers.notify
+      observers.call
 
       assert_equal(%w[HELLO], @memory)
 
