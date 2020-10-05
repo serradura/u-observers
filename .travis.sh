@@ -2,6 +2,9 @@
 
 ruby_v=$(ruby -v)
 
+bundle update
+bundle exec rake test
+
 ACTIVERECORD_VERSION='3.2' bundle update
 ACTIVERECORD_VERSION='3.2' bundle exec rake test
 
