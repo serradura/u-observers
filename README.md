@@ -35,6 +35,7 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
 - [Compatibility](#compatibility)
   - [Usage](#usage)
     - [Passing a context for your observers](#passing-a-context-for-your-observers)
+    - [Passing a callable as an observer](#passing-a-callable-as-an-observer)
     - [Calling the observers](#calling-the-observers)
     - [Notifying observers without marking them as changed](#notifying-observers-without-marking-them-as-changed)
     - [ActiveRecord and ActiveModel integrations](#activerecord-and-activemodel-integrations)
@@ -61,7 +62,7 @@ gem 'u-observers'
 
 > **Note**: The ActiveRecord isn't a dependency, but you could add a module to enable some static methods that were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
 
-[⬆️ Back to Top](#table-of-contents-)
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 ## Usage
 
@@ -102,7 +103,7 @@ end
 order = Order.new
 #<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
-order.observers.attach(OrderEvents) # attaching multiple observers. e.g. observers.attach(A, B, C)
+order.observers.attach(OrderEvents)          # attaching multiple observers. e.g. observers.attach(A, B, C)
 # <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
 
 order.canceled?
@@ -114,6 +115,15 @@ order.cancel!
 
 order.canceled?
 # true
+
+order.observers.detach(OrderEvents)          # detaching multiple observers. e.g. observers.detach(A, B, C)
+# <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]
+
+order.canceled?
+# true
+
+order.observers.subject_changed!
+order.observers.notify(:canceled) # nothing will happen, because there are no observers attached.
 ```
 
 **Highlights of the previous example:**
@@ -131,7 +141,7 @@ order.observers.notify
 # ArgumentError (no events (expected at least 1))
 ```
 
-[⬆️ Back to Top](#table-of-contents-)
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 ### Passing a context for your observers
 
@@ -161,7 +171,52 @@ order.cancel!
 # The order #(70196221441820) has been canceled. (from: example #2)
 ```
 
-[⬆️ Back to Top](#table-of-contents-)
+### Passing a callable as an observer
+
+The `observers.on()` method enables you to attach callable as observers. It could receive three options:
+1. `:event` that will be notified
+2. `:call` with the callable object.
+3. `:with` (optional) it can define the value which will be used as the callable object's argument. So, if it receives a `Proc` the subject will be passed to it and the argument will be defined at runtime. But if this option wasn't be defined, the subject will be its argument.
+
+```ruby
+class Person
+  include Micro::Observers
+
+  attr_reader :name
+
+  def initialize(name)
+    @name = name
+  end
+
+  def name=(new_name)
+    observers.subject_changed(new_name != @name)
+
+    return unless observers.subject_changed?
+
+    @name = new_name
+
+    observers.notify(:name_has_been_changed)
+  end
+end
+
+PrintPersonName = -> (data) do
+  puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
+end
+
+person = Person.new('Rodrigo')
+
+person.observers.on(
+  event: :name_has_been_changed,
+  call: PrintPersonName,
+  with: -> person { {person: person, number: rand} }
+)
+
+person.name = 'Serradura'
+# The message below will be printed by the observer (PrintPersonName):
+# Person name: Serradura, number: 0.5018509191706862
+```
+
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 ### Calling the observers
 
@@ -188,9 +243,9 @@ order.cancel!
 # The order #(70196221441820) has been canceled.
 ```
 
-PS: The `observers.call` can receive one or more events, but in this case, the default event (`call`) won't be transmitted.a
+> **Note**: The `observers.call` can receive one or more events, but in this case, the default event (`call`) won't be transmitted.a
 
-[⬆️ Back to Top](#table-of-contents-)
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 ### Notifying observers without marking them as changed
 
@@ -198,7 +253,7 @@ This feature needs to be used with caution!
 
 If you use the methods `#notify!` or `#call!` you won't need to mark observers with `#subject_changed`.
 
-[⬆️ Back to Top](#table-of-contents-)
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 ### ActiveRecord and ActiveModel integrations
 
@@ -245,7 +300,7 @@ end
 # Title: Hello world (from: example 4)
 ```
 
-[⬆️ Back to Top](#table-of-contents-)
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 #### notify_observers()
 
@@ -280,9 +335,9 @@ end
 # Title: Olá mundo (from: example 5)
 ```
 
-PS: You can use `include ::Micro::Observers::For::ActiveModel` if your class only makes use of the `ActiveModel` and all the previous examples will work.
+> **Note**: You can use `include ::Micro::Observers::For::ActiveModel` if your class only makes use of the `ActiveModel` and all the previous examples will work.
 
-[⬆️ Back to Top](#table-of-contents-)
+[⬆️&nbsp;Back to Top](#table-of-contents-)
 
 ## Development
 
