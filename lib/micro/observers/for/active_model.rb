@@ -14,7 +14,7 @@ module Micro
           end
 
           def notify_observers(*events)
-            notify_observers!(Events.fetch(events))
+            notify_observers!(Event::Names.fetch(events))
           end
 
           def notify_observers_on(*callback_methods)

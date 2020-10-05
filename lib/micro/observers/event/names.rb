@@ -3,7 +3,7 @@
 module Micro
   module Observers
 
-    module Events
+    class Event::Names
       def self.[](value, default: Utils::EMPTY_ARRAY)
         values = Utils.compact_array(value)
 
