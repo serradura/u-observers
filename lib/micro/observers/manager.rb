@@ -92,13 +92,13 @@ module Micro
       end
 
       def notify(*events)
-        broadcast_if_subject_changed(Events.fetch(events))
+        broadcast_if_subject_changed(Event::Names.fetch(events))
 
         self
       end
 
       def notify!(*events)
-        broadcast(Events.fetch(events))
+        broadcast(Event::Names.fetch(events))
 
         self
       end
@@ -106,13 +106,13 @@ module Micro
       CALL_EVENT = [:call].freeze
 
       def call(*events)
-        broadcast_if_subject_changed(Events[events, default: CALL_EVENT])
+        broadcast_if_subject_changed(Event::Names[events, default: CALL_EVENT])
 
         self
       end
 
       def call!(*events)
-        broadcast(Events[events, default: CALL_EVENT])
+        broadcast(Event::Names[events, default: CALL_EVENT])
 
         self
       end
