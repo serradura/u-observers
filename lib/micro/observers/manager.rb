@@ -46,11 +46,7 @@ module Micro
       INVALID_BOOLEAN_MSG = 'expected a boolean (true, false)'.freeze
 
       def subject_changed(state)
-        if state == true || state == false
-          @subject_changed = state
-
-          return self
-        end
+        return @subject_changed = state if state == true || state == false
 
         raise ArgumentError, INVALID_BOOLEAN_MSG
       end
