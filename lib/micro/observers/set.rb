@@ -3,7 +3,7 @@
 module Micro
   module Observers
 
-    class Manager
+    class Set
       MapSubscriber = -> (observer, options) { [:observer, observer, options[:context]] }
 
       MapSubscribers = -> (value) do

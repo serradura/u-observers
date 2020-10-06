@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerDetachTest < Minitest::Test
+  class SetDetachTest < Minitest::Test
     def setup
       StreamInMemory.history.clear
     end
@@ -41,7 +41,7 @@ module Micro::Observers
       assert_equal(2, person.observers.count)
       assert_predicate(person.observers, :some?)
 
-      assert_instance_of(Manager, person.observers.detach(PersonNamePrinter))
+      assert_instance_of(Set, person.observers.detach(PersonNamePrinter))
 
       assert_equal(1, person.observers.count)
 
