@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerNotifyTest < Minitest::Test
+  class SetNotifyTest < Minitest::Test
     def setup
       StreamInMemory.history.clear
     end
@@ -23,7 +23,7 @@ module Micro::Observers
     def test_the_idempotency_with_single_notifications
       word = 'hello'
 
-      observers = Manager.new(word, subscribers: [PrintWord, PrintUpcasedWord])
+      observers = Set.new(word, subscribers: [PrintWord, PrintUpcasedWord])
 
       # --
 
@@ -69,7 +69,7 @@ module Micro::Observers
     def test_the_idempotency_with_multiple_notifications
       word = 'hello'
 
-      observers = Manager.new(word, subscribers: [PrintWord, PrintUpcasedWord])
+      observers = Set.new(word, subscribers: [PrintWord, PrintUpcasedWord])
 
       # --
 
@@ -118,7 +118,7 @@ module Micro::Observers
     def test_no_idempotency_when_calling_single_events
       word = 'hello'
 
-      observers = Manager.new(word, subscribers: [PrintWord, PrintUpcasedWord])
+      observers = Set.new(word, subscribers: [PrintWord, PrintUpcasedWord])
 
       # --
 
@@ -127,7 +127,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_instance_of(Manager, observers.notify!(:call))
+      assert_instance_of(Set, observers.notify!(:call))
 
       observers.notify!(:word_has_been_changed)
 
@@ -151,7 +151,7 @@ module Micro::Observers
     def test_no_idempotency_when_calling_multiple_events
       word = 'hello'
 
-      observers = Manager.new(word, subscribers: [PrintWord, PrintUpcasedWord])
+      observers = Set.new(word, subscribers: [PrintWord, PrintUpcasedWord])
 
       # --
 
@@ -179,7 +179,7 @@ module Micro::Observers
     end
 
     def test_that_the_notify_methods_require_at_least_one_event
-      observers = Manager.new('hello')
+      observers = Set.new('hello')
 
       err1 = assert_raises(ArgumentError) { observers.notify }
       assert_equal('no events (expected at least 1)', err1.message)

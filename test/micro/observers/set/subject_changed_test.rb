@@ -1,11 +1,11 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerSubjectChangedTest < Minitest::Test
+  class SetSubjectChangedTest < Minitest::Test
     def test_the_subject_changing
       @memory = []
 
-      observers = Manager.new('hello')
+      observers = Set.new('hello')
 
       observers.attach(-> (value) { @memory << String(value).upcase })
 
@@ -15,7 +15,7 @@ module Micro::Observers
 
       # --
 
-      observers.subject_changed!
+      assert_instance_of(TrueClass, observers.subject_changed!)
 
       assert_predicate(observers, :subject_changed?)
 
@@ -31,7 +31,7 @@ module Micro::Observers
 
       assert_predicate(observers, :subject_changed?)
 
-      observers.subject_changed(false)
+      assert_instance_of(FalseClass, observers.subject_changed(false))
 
       refute_predicate(observers, :subject_changed?)
 

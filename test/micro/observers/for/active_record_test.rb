@@ -44,8 +44,8 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
     end
 
     module TitlePrinterWithContext
-      def self.after_commit(post, context)
-        StreamInMemory.puts("Title: #{post.title}, from: #{context[:from]}")
+      def self.after_commit(post, event)
+        StreamInMemory.puts("Title: #{post.title}, from: #{event.context[:from]}")
       end
     end
 

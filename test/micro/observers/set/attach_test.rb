@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerAttachTest < Minitest::Test
+  class SetAttachTest < Minitest::Test
     class Person
       include Micro::Observers
 
@@ -31,7 +31,7 @@ module Micro::Observers
     def test_the_attaching_of_one_observer_per_time
       person = Person.new(name: 'Rodrigo')
 
-      assert_instance_of(Manager, person.observers.attach(PersonNamePrinter))
+      assert_instance_of(Set, person.observers.attach(PersonNamePrinter))
 
       assert_equal(1, person.observers.count)
 
@@ -40,7 +40,7 @@ module Micro::Observers
       assert_equal(1, person.observers.count)
 
       assert_instance_of(
-        Manager,
+        Set,
         person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
       )
       assert_equal(2, person.observers.count)
@@ -62,10 +62,10 @@ module Micro::Observers
     def test_the_avoidance_of_attaching_an_invalid_subscriber
       person = Person.new(name: 'Rodrigo')
 
-      assert_instance_of(Manager, person.observers.on(event: 'foo', call: -> {}))
+      assert_instance_of(Set, person.observers.on(event: 'foo', call: -> {}))
       assert_equal(0, person.observers.count)
 
-      assert_instance_of(Manager, person.observers.on(event: :foo, call: nil))
+      assert_instance_of(Set, person.observers.on(event: :foo, call: nil))
       assert_equal(0, person.observers.count)
     end
 
@@ -74,7 +74,7 @@ module Micro::Observers
 
       person.observers.on(
         event: :name_has_been_changed,
-        call: -> subject { assert_instance_of(Person, subject) }
+        call: -> event { assert_instance_of(Person, event.subject) }
       )
 
       person.observers.on(
@@ -85,21 +85,21 @@ module Micro::Observers
 
       person.observers.on(
         event: :name_has_been_changed,
-        call: -> subject { assert_instance_of(Person, subject) },
+        call: -> event { assert_instance_of(Person, event.subject) },
         with: nil
       )
 
       person.observers.on(
         event: :name_has_been_changed,
         call: -> data { assert_equal({person: person}, data) },
-        with: -> subject { {person: subject} }
+        with: -> event { {person: event.subject} }
       )
 
       assert_equal(4, person.observers.count)
 
       person.observers.on(
         event: :name_has_been_updated,
-        call: -> subject { raise }
+        call: -> event { raise }
       )
 
       assert_equal(5, person.observers.count)

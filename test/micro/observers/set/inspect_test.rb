@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerInspectTest < Minitest::Test
+  class SetInspectTest < Minitest::Test
     PrintWord = -> word { StreamInMemory.puts(word) }
 
     module PrintUpcasedWord
@@ -11,19 +11,19 @@ module Micro::Observers
     end
 
     def test_the_observers_inspect_output_when_it_has_subscribers
-      observers = Manager.new('hello', subscribers: [PrintWord, PrintUpcasedWord])
+      observers = Set.new('hello', subscribers: [PrintWord, PrintUpcasedWord])
 
       assert_match(
-        /<#Micro::Observers::Manager @subject=hello @subject_changed=false @subscribers=\[#<Proc:0x.+\/.+\/inspect_test.rb:5 \(lambda\)>, .+PrintUpcasedWord\]>/,
+        /<#Micro::Observers::Set @subject=hello @subject_changed=false @subscribers=\[#<Proc:0x.+\/.+\/inspect_test.rb:5 \(lambda\)>, .+PrintUpcasedWord\]>/,
         observers.inspect
       )
     end
 
     def test_the_observers_inspect_output_when_it_has_no_subscribers
-      observers = Manager.new('hello')
+      observers = Set.new('hello')
 
       assert_match(
-        /<#Micro::Observers::Manager @subject=hello @subject_changed=false @subscribers=\[\]>/,
+        /<#Micro::Observers::Set @subject=hello @subject_changed=false @subscribers=\[\]>/,
         observers.inspect
       )
     end
