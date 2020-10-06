@@ -15,7 +15,7 @@ module Micro::Observers
 
       # --
 
-      observers.subject_changed!
+      assert_instance_of(TrueClass, observers.subject_changed!)
 
       assert_predicate(observers, :subject_changed?)
 
@@ -31,7 +31,7 @@ module Micro::Observers
 
       assert_predicate(observers, :subject_changed?)
 
-      observers.subject_changed(false)
+      assert_instance_of(FalseClass, observers.subject_changed(false))
 
       refute_predicate(observers, :subject_changed?)
 
