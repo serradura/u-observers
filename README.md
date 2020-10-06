@@ -26,7 +26,7 @@
 
 This gem implements the observer pattern [[1]](https://en.wikipedia.org/wiki/Observer_pattern)[[2]](https://refactoring.guru/design-patterns/observer) (also known as publish/subscribe). It provides a simple mechanism for one object to inform a set of interested third-party objects when its state changes.
 
-Ruby's standard library [has an abstraction](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) that enables you to use this pattern. But its design can conflict with other mainstream libraries, like the [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), which also has the [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed) method. In this case, the behavior of the Stdlib will be been compromised.
+Ruby's standard library [has an abstraction](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) that enables you to use this pattern. But its design can conflict with other mainstream libraries, like the [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), which also has the [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed) method. In this case, the behavior of the Stdlib will be compromised.
 
 Because of this issue, I decided to create a gem that encapsulates the pattern without changing the object's implementation so much. The `Micro::Observers` includes just one instance method in the target class (its instance will be the observed subject).
 
@@ -34,10 +34,10 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
 - [Installation](#installation)
 - [Compatibility](#compatibility)
   - [Usage](#usage)
-    - [Passing a context for your observers](#passing-a-context-for-your-observers)
-    - [Passing data when performing observers](#passing-data-when-performing-observers)
+    - [Sharing a context with your observers](#sharing-a-context-with-your-observers)
+    - [Sharing data when notifying the observers](#sharing-data-when-notifying-the-observers)
     - [What is a `Micro::Observers::Event`?](#what-is-a-microobserversevent)
-    - [Passing a callable as an observer](#passing-a-callable-as-an-observer)
+    - [Using a callable as an observer](#using-a-callable-as-an-observer)
     - [Calling the observers](#calling-the-observers)
     - [Notifying observers without marking them as changed](#notifying-observers-without-marking-them-as-changed)
     - [ActiveRecord and ActiveModel integrations](#activerecord-and-activemodel-integrations)
@@ -107,7 +107,7 @@ order = Order.new
 #<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
 order.observers.attach(OrderEvents)          # attaching multiple observers. e.g. observers.attach(A, B, C)
-# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
+# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]>
 
 order.canceled?
 # false
@@ -120,7 +120,7 @@ order.canceled?
 # true
 
 order.observers.detach(OrderEvents)          # detaching multiple observers. e.g. observers.detach(A, B, C)
-# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]
+# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]>
 
 order.canceled?
 # true
@@ -131,7 +131,7 @@ order.observers.notify(:canceled) # nothing will happen, because there are no ob
 
 **Highlights of the previous example:**
 
-To avoid an undesired behavior, do you need to mark the subject as changed before notify your observers about some event.
+To avoid an undesired behavior, you need to mark the subject as changed before notifying your observers about some event.
 
 You can do this when using the `#subject_changed!` method. It will automatically mark the subject as changed.
 
@@ -146,11 +146,11 @@ order.observers.notify
 
 [⬆️ &nbsp; Back to Top](#table-of-contents-)
 
-### Passing a context for your observers
+### Sharing a context with your observers
 
-To pass a context (any kind of Ruby object) for one or more observers, you will need to use the `context:` keyword as the last argument of the `#attach` method.
+To share a context value (any kind of Ruby object) with one or more observers, you will need to use the `:context` keyword as the last argument of the `#attach` method. This feature gives you a unique opportunity to share a value in the attaching moment.
 
-When the observer method receives two arguments, the first one will be the subject, and the second one an instance of `Micro::Observers::Event`.
+When the observer method receives two arguments, the first one will be the subject, and the second one an instance of `Micro::Observers::Event` that will have the given context value.
 
 ```ruby
 class Order
@@ -178,9 +178,9 @@ order.cancel!
 
 [⬆️ &nbsp; Back to Top](#table-of-contents-)
 
-### Passing data when performing observers
+### Sharing data when notifying the observers
 
-The [`event context`](#passing-a-context-for-your-observers) is a value that is stored when you attach your observer. But sometimes, will be useful to send some additional data when broadcasting an event to the observers.
+As previously mentioned, the [`event context`](#sharing-a-context-with-your-observers) is a value that is stored when you attach your observer. But sometimes, it will be useful to send some additional data when broadcasting an event to the observers. The `event data` gives you this unique opportunity to share some value at the the notification moment.
 
 ```ruby
 class Order
@@ -209,17 +209,19 @@ The `Micro::Observers::Event` is the event payload. Follow below all of its prop
 
 - `#name` will be the broadcasted event.
 - `#subject` will be the observed subject.
-- `#context` will be [the context data](#passing-a-context-for-your-observers) that was attached to the observer.
-- `#data` will be [the value that was passed to the observers' notification](#passing-data-when-performing-observers).
+- `#context` will be [the context data](#sharing-a-context-with-your-observers) that was defined in the moment that you attach the observer.
+- `#data` will be [the value that was shared in the observers' notification](#sharing-data-when-notifying-the-observers).
+- `#ctx` is an alias for the `#context` method.
+- `#subj` is an alias for the `#subject` method.
 
 [⬆️ &nbsp; Back to Top](#table-of-contents-)
 
-### Passing a callable as an observer
+### Using a callable as an observer
 
-The `observers.on()` method enables you to attach callable as observers. It could receive three options:
-1. `:event` that will be notified
-2. `:call` with the callable object.
-3. `:with` (optional) it can define the value which will be used as the callable object's argument. So, if it receives a `Proc` a `Micro::Observers::Event` instance will be passed to it and the argument will be defined as the `Proc` output. But if this option wasn't be defined, the `Micro::Observers::Event` instance will be its argument.
+The `observers.on()` method enables you to attach a callable as an observer. It could receive three options:
+1. `:event` the expected event name.
+2. `:call` the callable object itself.
+3. `:with` (optional) it can define the value which will be used as the callable object's argument. So, if it is a `Proc`, a `Micro::Observers::Event` instance will be received as the `Proc` argument, and its output will be the callable argument. But if this option wasn't defined, the `Micro::Observers::Event` instance will be the callable argument.
 
 ```ruby
 class Person
@@ -232,9 +234,7 @@ class Person
   end
 
   def name=(new_name)
-    observers.subject_changed(new_name != @name)
-
-    return unless observers.subject_changed?
+    return unless observers.subject_changed(new_name != @name)
 
     @name = new_name
 
@@ -264,7 +264,7 @@ person.name = 'Serradura'
 ### Calling the observers
 
 You can use a callable (a class, module, or object that responds to the call method) to be your observers.
-To do this, you only need make use of the method `#call` instead of `#notify`.
+To do this, you only need to make use of the method `#call` instead of `#notify`.
 
 ```ruby
 class Order
@@ -286,7 +286,7 @@ order.cancel!
 # The order #(70196221441820) has been canceled.
 ```
 
-> **Note**: The `observers.call` can receive one or more events, but in this case, the default event (`call`) won't be transmitted.a
+> **Note**: The `observers.call` can receive one or more events, but in this case, the default event (`call`) won't be transmitted.
 
 [⬆️ &nbsp; Back to Top](#table-of-contents-)
 
@@ -300,7 +300,7 @@ If you use the methods `#notify!` or `#call!` you won't need to mark observers w
 
 ### ActiveRecord and ActiveModel integrations
 
-To make use of this feature you need to require an additional module (`require 'u-observers/for/active_record'`).
+To make use of this feature you need to require an additional module.
 
 Gemfile example:
 ```ruby
@@ -312,13 +312,20 @@ This feature will expose modules that could be used to add macros (static method
 
 #### notify_observers_on()
 
-The `notify_observers_on` allows you to pass one or more `ActiveModel`/`ActiveRecord` callbacks, that will be used to notify your object observers.
+The `notify_observers_on` allows you to define one or more `ActiveModel`/`ActiveRecord` callbacks, that will be used to notify your object observers.
 
 ```ruby
 class Post < ActiveRecord::Base
   include ::Micro::Observers::For::ActiveRecord
 
-  notify_observers_on(:after_commit) # passing multiple callbacks. e.g. notify_observers_on(:before_save, :after_commit)
+  notify_observers_on(:after_commit) # using multiple callbacks. e.g. notify_observers_on(:before_save, :after_commit)
+
+  # The method above does the same as the commented example below.
+  #
+  # after_commit do |record|
+  #  record.subject_changed!
+  #  record.notify(:after_commit)
+  # end
 end
 
 module TitlePrinter
@@ -347,13 +354,20 @@ end
 
 #### notify_observers()
 
-The `notify_observers` allows you to pass one or more *events*, that will be used to notify after the execution of some `ActiveModel`/`ActiveRecord` callback.
+The `notify_observers` allows you to define one or more *events*, that will be used to notify after the execution of some `ActiveModel`/`ActiveRecord` callback.
 
 ```ruby
 class Post < ActiveRecord::Base
   include ::Micro::Observers::For::ActiveRecord
 
   after_commit(&notify_observers(:transaction_completed))
+
+  # The method above does the same as the commented example below.
+  #
+  # after_commit do |record|
+  #  record.subject_changed!
+  #  record.notify(:transaction_completed)
+  # end
 end
 
 module TitlePrinter
