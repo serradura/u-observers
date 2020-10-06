@@ -87,28 +87,28 @@ module Micro
         self
       end
 
-      def notify(*events)
-        broadcast_if_subject_changed(Event::Names.fetch(events))
+      def notify(*events, data: nil)
+        broadcast_if_subject_changed(Event::Names.fetch(events), data)
 
         self
       end
 
-      def notify!(*events)
-        broadcast(Event::Names.fetch(events))
+      def notify!(*events, data: nil)
+        broadcast(Event::Names.fetch(events), data)
 
         self
       end
 
       CALL_EVENT = [:call].freeze
 
-      def call(*events)
-        broadcast_if_subject_changed(Event::Names[events, default: CALL_EVENT])
+      def call(*events, data: nil)
+        broadcast_if_subject_changed(Event::Names[events, default: CALL_EVENT], data)
 
         self
       end
 
-      def call!(*events)
-        broadcast(Event::Names[events, default: CALL_EVENT])
+      def call!(*events, data: nil)
+        broadcast(Event::Names[events, default: CALL_EVENT], data)
 
         self
       end
@@ -121,43 +121,51 @@ module Micro
 
       private
 
-        def broadcast_if_subject_changed(events)
+        def broadcast_if_subject_changed(events, data = nil)
           return unless subject_changed?
 
-          broadcast(events)
+          broadcast(events, data)
 
           subject_changed(false)
         end
 
-        def broadcast(events)
+        def broadcast(event_names, data)
           return if @subscribers.empty?
 
-          events.each do |event|
+          event_names.each do |event_name|
             @subscribers.each do |strategy, observer, context|
               case strategy
-              when :observer then notify_observer(observer, event, context)
-              when :callable then notify_callable(observer, event, context)
+              when :observer then notify_observer(observer, event_name, context, data)
+              when :callable then notify_callable(observer, event_name, context, data)
               end
             end
           end
         end
 
-        def notify_observer(observer, method_name, context)
-          return unless observer.respond_to?(method_name)
+        def notify_observer(observer, event_name, context, data)
+          return unless observer.respond_to?(event_name)
 
-          handler = observer.is_a?(Proc) ? observer : observer.method(method_name)
+          handler = observer.is_a?(Proc) ? observer : observer.method(event_name)
 
-          handler.arity == 1 ? handler.call(@subject) : handler.call(@subject, context)
+          return handler.call(@subject) if handler.arity == 1
+
+          handler.call(@subject, Event.new(event_name, @subject, context, data))
         end
 
-        def notify_callable(expected_event, event, context)
-          return if expected_event != event
+        def notify_callable(expected_event_name, event_name, context, data)
+          return if expected_event_name != event_name
 
           callable, with = context[0], context[1]
+          callable_arg =
+            if with && !with.is_a?(Proc)
+              with
+            else
+              event = Event.new(event_name, @subject, nil, data)
 
-          arg = with.is_a?(Proc) ? with.call(@subject) : (with || @subject)
+              with.is_a?(Proc) ? with.call(event) : event
+            end
 
-          callable.call(arg)
+          callable.call(callable_arg)
         end
 
       private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT

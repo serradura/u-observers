@@ -45,8 +45,8 @@ class Micro::ObserversTest < Minitest::Test
     end
 
     module TitlePrinterWithContext
-      def self.record_has_been_persisted(post, context)
-        StreamInMemory.puts("Title: #{post.title}, from: #{context[:from]}")
+      def self.record_has_been_persisted(post, event)
+        StreamInMemory.puts("Title: #{post.title}, from: #{event.ctx[:from]}")
       end
     end
 
@@ -72,9 +72,7 @@ class Micro::ObserversTest < Minitest::Test
     end
 
     def name=(new_name)
-      observers.subject_changed(new_name != @name)
-
-      return unless observers.subject_changed?
+      return unless observers.subject_changed(new_name != @name)
 
       @name = new_name
 
@@ -93,7 +91,7 @@ class Micro::ObserversTest < Minitest::Test
     person.observers.on(
       event: :name_has_been_changed,
       call: PrintPersonName,
-      with: -> person { {person: person, number: rand_number} }
+      with: -> event { {person: event.subject, number: rand_number} }
     )
 
     person.name = 'Serradura'

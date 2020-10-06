@@ -74,7 +74,7 @@ module Micro::Observers
 
       person.observers.on(
         event: :name_has_been_changed,
-        call: -> subject { assert_instance_of(Person, subject) }
+        call: -> event { assert_instance_of(Person, event.subject) }
       )
 
       person.observers.on(
@@ -85,21 +85,21 @@ module Micro::Observers
 
       person.observers.on(
         event: :name_has_been_changed,
-        call: -> subject { assert_instance_of(Person, subject) },
+        call: -> event { assert_instance_of(Person, event.subject) },
         with: nil
       )
 
       person.observers.on(
         event: :name_has_been_changed,
         call: -> data { assert_equal({person: person}, data) },
-        with: -> subject { {person: subject} }
+        with: -> event { {person: event.subject} }
       )
 
       assert_equal(4, person.observers.count)
 
       person.observers.on(
         event: :name_has_been_updated,
-        call: -> subject { raise }
+        call: -> event { raise }
       )
 
       assert_equal(5, person.observers.count)
