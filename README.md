@@ -35,6 +35,8 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
 - [Compatibility](#compatibility)
   - [Usage](#usage)
     - [Passing a context for your observers](#passing-a-context-for-your-observers)
+    - [Passing data when performing observers](#passing-data-when-performing-observers)
+    - [What is a `Micro::Observers::Event`?](#what-is-a-microobserversevent)
     - [Passing a callable as an observer](#passing-a-callable-as-an-observer)
     - [Calling the observers](#calling-the-observers)
     - [Notifying observers without marking them as changed](#notifying-observers-without-marking-them-as-changed)
@@ -58,11 +60,12 @@ gem 'u-observers'
 
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
-| 1.0.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.0.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Note**: The ActiveRecord isn't a dependency, but you could add a module to enable some static methods that were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ## Usage
 
@@ -104,7 +107,7 @@ order = Order.new
 #<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
 order.observers.attach(OrderEvents)          # attaching multiple observers. e.g. observers.attach(A, B, C)
-# <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
+# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
 
 order.canceled?
 # false
@@ -117,7 +120,7 @@ order.canceled?
 # true
 
 order.observers.detach(OrderEvents)          # detaching multiple observers. e.g. observers.detach(A, B, C)
-# <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]
+# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]
 
 order.canceled?
 # true
@@ -141,11 +144,13 @@ order.observers.notify
 # ArgumentError (no events (expected at least 1))
 ```
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ### Passing a context for your observers
 
 To pass a context (any kind of Ruby object) for one or more observers, you will need to use the `context:` keyword as the last argument of the `#attach` method.
+
+When the observer method receives two arguments, the first one will be the subject, and the second one an instance of `Micro::Observers::Event`.
 
 ```ruby
 class Order
@@ -159,24 +164,62 @@ class Order
 end
 
 module OrderEvents
-  def self.canceled(order, context)
-    puts "The order #(#{order.code}) has been canceled. (from: #{context[:from]})"
+  def self.canceled(order, event)
+    puts "The order #(#{order.object_id}) has been canceled. (from: #{event.context[:from]})" # event.ctx is an alias for event.context
   end
 end
 
 order = Order.new
-order.observers.attach(OrderEvents, context: { from: 'example #2' ) # attaching multiple observers. e.g. observers.attach(A, B, context: {hello: :world})
+order.observers.attach(OrderEvents, context: { from: 'example #2' }) # attaching multiple observers. e.g. observers.attach(A, B, context: {hello: :world})
 order.cancel!
 # The message below will be printed by the observer (OrderEvents):
 # The order #(70196221441820) has been canceled. (from: example #2)
 ```
+
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
+
+### Passing data when performing observers
+
+The [`event context`](#passing-a-context-for-your-observers) is a value that is stored when you attach your observer. But sometimes, will be useful to send some additional data when broadcasting an event to the observers.
+
+```ruby
+class Order
+  include Micro::Observers
+end
+
+module OrderHandler
+  def self.changed(order, event)
+    puts "The order #(#{order.object_id}) received the number #{event.data} from #{event.ctx[:from]}."
+  end
+end
+
+order = Order.new
+order.observers.attach(OrderHandler, context: { from: 'example #3' })
+order.observers.subject_changed!
+order.observers.notify(:changed, data: 1)
+# The message below will be printed by the observer (OrderHandler):
+# The order #(70196221441820) received the number 1 from example #3.
+```
+
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
+
+### What is a `Micro::Observers::Event`?
+
+The `Micro::Observers::Event` is the event payload. Follow below all of its properties:
+
+- `#name` will be the broadcasted event.
+- `#subject` will be the observed subject.
+- `#context` will be [the context data](#passing-a-context-for-your-observers) that was attached to the observer.
+- `#data` will be [the value that was passed to the observers' notification](#passing-data-when-performing-observers).
+
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ### Passing a callable as an observer
 
 The `observers.on()` method enables you to attach callable as observers. It could receive three options:
 1. `:event` that will be notified
 2. `:call` with the callable object.
-3. `:with` (optional) it can define the value which will be used as the callable object's argument. So, if it receives a `Proc` the subject will be passed to it and the argument will be defined at runtime. But if this option wasn't be defined, the subject will be its argument.
+3. `:with` (optional) it can define the value which will be used as the callable object's argument. So, if it receives a `Proc` a `Micro::Observers::Event` instance will be passed to it and the argument will be defined as the `Proc` output. But if this option wasn't be defined, the `Micro::Observers::Event` instance will be its argument.
 
 ```ruby
 class Person
@@ -208,7 +251,7 @@ person = Person.new('Rodrigo')
 person.observers.on(
   event: :name_has_been_changed,
   call: PrintPersonName,
-  with: -> person { {person: person, number: rand} }
+  with: -> event { {person: event.subject, number: rand} }
 )
 
 person.name = 'Serradura'
@@ -216,7 +259,7 @@ person.name = 'Serradura'
 # Person name: Serradura, number: 0.5018509191706862
 ```
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ### Calling the observers
 
@@ -239,13 +282,13 @@ OrderCancellation = -> (order) { puts "The order #(#{order.object_id}) has been 
 order = Order.new
 order.observers.attach(OrderCancellation)
 order.cancel!
-# The message below will be printed by the observer (OrderEvents):
+# The message below will be printed by the observer (OrderCancellation):
 # The order #(70196221441820) has been canceled.
 ```
 
 > **Note**: The `observers.call` can receive one or more events, but in this case, the default event (`call`) won't be transmitted.a
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ### Notifying observers without marking them as changed
 
@@ -253,7 +296,7 @@ This feature needs to be used with caution!
 
 If you use the methods `#notify!` or `#call!` you won't need to mark observers with `#subject_changed`.
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ### ActiveRecord and ActiveModel integrations
 
@@ -285,22 +328,22 @@ module TitlePrinter
 end
 
 module TitlePrinterWithContext
-  def self.after_commit(post, context)
-    puts "Title: #{post.title} (from: #{context[:from]})"
+  def self.after_commit(post, event)
+    puts "Title: #{post.title} (from: #{event.context[:from]})"
   end
 end
 
 Post.transaction do
   post = Post.new(title: 'Hello world')
-  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example 4' })
+  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example #6' })
   post.save
 end
-# The message below will be printed by the observer (OrderEvents):
+# The message below will be printed by the observers (TitlePrinter, TitlePrinterWithContext):
 # Title: Hello world
-# Title: Hello world (from: example 4)
+# Title: Hello world (from: example #6)
 ```
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 #### notify_observers()
 
@@ -320,24 +363,24 @@ module TitlePrinter
 end
 
 module TitlePrinterWithContext
-  def self.transaction_completed(post, context)
-    puts("Title: #{post.title} (from: #{context[:from]})")
+  def self.transaction_completed(post, event)
+    puts("Title: #{post.title} (from: #{event.ctx[:from]})")
   end
 end
 
 Post.transaction do
   post = Post.new(title: 'Olá mundo')
-  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example 5' })
+  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example #7' })
   post.save
 end
-# The message below will be printed by the observer (OrderEvents):
+# The message below will be printed by the observers (TitlePrinter, TitlePrinterWithContext):
 # Title: Olá mundo
-# Title: Olá mundo (from: example 5)
+# Title: Olá mundo (from: example #5)
 ```
 
 > **Note**: You can use `include ::Micro::Observers::For::ActiveModel` if your class only makes use of the `ActiveModel` and all the previous examples will work.
 
-[⬆️&nbsp;Back to Top](#table-of-contents-)
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ## Development
 
