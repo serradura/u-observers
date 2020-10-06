@@ -1,11 +1,11 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerSubjectChangedTest < Minitest::Test
+  class SetSubjectChangedTest < Minitest::Test
     def test_the_subject_changing
       @memory = []
 
-      observers = Manager.new('hello')
+      observers = Set.new('hello')
 
       observers.attach(-> (value) { @memory << String(value).upcase })
 

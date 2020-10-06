@@ -104,7 +104,7 @@ order = Order.new
 #<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
 order.observers.attach(OrderEvents)          # attaching multiple observers. e.g. observers.attach(A, B, C)
-# <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
+# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]
 
 order.canceled?
 # false
@@ -117,7 +117,7 @@ order.canceled?
 # true
 
 order.observers.detach(OrderEvents)          # detaching multiple observers. e.g. observers.detach(A, B, C)
-# <#Micro::Observers::Manager @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]
+# <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]
 
 order.canceled?
 # true

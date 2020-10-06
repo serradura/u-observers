@@ -1,7 +1,7 @@
 require 'test_helper'
 
 module Micro::Observers
-  class ManagerAttachTest < Minitest::Test
+  class SetAttachTest < Minitest::Test
     class Person
       include Micro::Observers
 
@@ -31,7 +31,7 @@ module Micro::Observers
     def test_the_attaching_of_one_observer_per_time
       person = Person.new(name: 'Rodrigo')
 
-      assert_instance_of(Manager, person.observers.attach(PersonNamePrinter))
+      assert_instance_of(Set, person.observers.attach(PersonNamePrinter))
 
       assert_equal(1, person.observers.count)
 
@@ -40,7 +40,7 @@ module Micro::Observers
       assert_equal(1, person.observers.count)
 
       assert_instance_of(
-        Manager,
+        Set,
         person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
       )
       assert_equal(2, person.observers.count)
@@ -62,10 +62,10 @@ module Micro::Observers
     def test_the_avoidance_of_attaching_an_invalid_subscriber
       person = Person.new(name: 'Rodrigo')
 
-      assert_instance_of(Manager, person.observers.on(event: 'foo', call: -> {}))
+      assert_instance_of(Set, person.observers.on(event: 'foo', call: -> {}))
       assert_equal(0, person.observers.count)
 
-      assert_instance_of(Manager, person.observers.on(event: :foo, call: nil))
+      assert_instance_of(Set, person.observers.on(event: :foo, call: nil))
       assert_equal(0, person.observers.count)
     end
 

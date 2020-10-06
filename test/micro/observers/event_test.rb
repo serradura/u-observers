@@ -45,7 +45,7 @@ module Micro::Observers
     end
 
     def test_the_received_event_scructure
-      observers = Micro::Observers::Manager.new('Rodrigo')
+      observers = Micro::Observers::Set.new('Rodrigo')
 
       # --
 
