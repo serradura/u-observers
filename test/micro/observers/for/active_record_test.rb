@@ -26,8 +26,8 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
       end
 
       assert_equal(
-        'The book was successfully created! Title: Observers',
-        StreamInMemory.history[0]
+        ['The book was successfully created! Title: Observers'],
+        StreamInMemory.history
       )
     end
 
@@ -45,7 +45,9 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
 
     module TitlePrinterWithContext
       def self.after_commit(post, event)
-        StreamInMemory.puts("Title: #{post.title}, from: #{event.context[:from]}")
+        from = event.context[:from] if event.context
+
+        StreamInMemory.puts("Title: #{post.title}, from: #{from}".strip)
       end
     end
 
@@ -56,8 +58,44 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
         post.save
       end
 
-      assert_equal('Title: Hello world', StreamInMemory.history[0])
-      assert_equal('Title: Hello world, from: Test 1', StreamInMemory.history[1])
+      assert_equal(
+        ['Title: Hello world', 'Title: Hello world, from: Test 1'],
+        StreamInMemory.history
+      )
+    end
+
+    class Law < ActiveRecord::Base
+      include ::Micro::Observers::For::ActiveRecord
+
+      notify_observers(TitlePrinter, event: :after_commit)
+    end
+
+    class Album < ActiveRecord::Base
+      include ::Micro::Observers::For::ActiveRecord
+
+      notify_observers(TitlePrinter, TitlePrinterWithContext, event: :after_commit, on: :update)
+    end
+
+    def test_the_observers_attached_in_the_callback
+      ActiveRecord::Base.transaction do
+        Law.create(title: 'Foo')
+        Album.create(title: 'Bar')
+      end
+
+      ActiveRecord::Base.transaction do
+        Law.update(title: 'Foz')
+        Album.update(title: 'Baz')
+      end
+
+      assert_equal(
+        [
+          'Title: Foo',
+          'Title: Foz',
+          'Title: Baz',
+          'Title: Baz, from:'
+        ],
+        StreamInMemory.history
+      )
     end
   end
 end

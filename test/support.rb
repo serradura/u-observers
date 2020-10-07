@@ -16,6 +16,14 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
     create_table :books do |t|
       t.column :title, :string
     end
+
+    create_table :laws do |t|
+      t.column :title, :string
+    end
+
+    create_table :albums do |t|
+      t.column :title, :string
+    end
   end
 end
 
