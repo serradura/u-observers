@@ -26,7 +26,7 @@
 
 Esta gem implementa o padrão observer[[1]](https://en.wikipedia.org/wiki/Observer_pattern)[[2]](https://refactoring.guru/design-patterns/observer) (também conhecido como publicar/assinar). Ela fornece um mecanismo simples para um objeto informar um conjunto de objetos de terceiros interessados ​​quando seu estado muda.
 
-A biblioteca padrão do Ruby [tem uma abstração](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) que permite usar esse padrão,, mas seu design pode entrar em conflito com outras bibliotecas convencionais, como [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), que também tem o método [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed). Nesse caso, o comportamento da biblioteca padrão ficará comprometido.
+A biblioteca padrão do Ruby [tem uma abstração](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) que permite usar esse padrão, mas seu design pode entrar em conflito com outras bibliotecas convencionais, como [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), que também tem o método [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed). Nesse caso, o comportamento ficaria comprometido por conta dessa sobrescrita de métodos.
 
 Por causa desse problema, decidi criar uma gem que encapsule o padrão sem alterar tanto a implementação do objeto. O Micro::Observers inclui apenas um método de instância na classe de destino (sua instância será o assunto observado).
 
