@@ -28,7 +28,7 @@ Esta gem implementa o padrão observer[[1]](https://en.wikipedia.org/wiki/Observ
 
 A biblioteca padrão do Ruby [tem uma abstração](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) que permite usar esse padrão, mas seu design pode entrar em conflito com outras bibliotecas convencionais, como [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), que também tem o método [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed). Nesse caso, o comportamento ficaria comprometido por conta dessa sobrescrita de métodos.
 
-Por causa desse problema, decidi criar uma gem que encapsule o padrão sem alterar tanto a implementação do objeto. O Micro::Observers inclui apenas um método de instância na classe de destino (sua instância será o assunto observado).
+Por causa desse problema, decidi criar uma gem que encapsula o padrão sem alterar tanto a implementação do objeto. O `Micro::Observers` inclui apenas um método de instância na classe de destino (sua instância será o sujeito/objeto observado).
 
 # Índice <!-- omit in toc -->
 
@@ -51,7 +51,7 @@ Por causa desse problema, decidi criar uma gem que encapsule o padrão sem alter
 
 # Instalação
 
-Adicione esta linha ao Gemfile do seu aplicativo e execute `bundle install`:
+Adicione esta linha ao Gemfile da sua aplicação e execute `bundle install`:
 
 ```ruby
 gem 'u-observers'
@@ -107,7 +107,7 @@ end
 order = Order.new
 #<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
-order.observers.attach(OrderEvents)  # anexando vários observadores. por exemplo, observers.attach (A, B, C) 
+order.observers.attach(OrderEvents)  # anexando vários observadores. Exemplo: observers.attach(A, B, C) 
 # <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]>
 
 order.canceled?
@@ -120,7 +120,7 @@ order.cancel!
 order.canceled?
 # true
 
-order.observers.detach(OrderEvents)  # desanexando vários observadores. por exemplo, observers.detach (A, B, C) 
+order.observers.detach(OrderEvents)  # desanexando vários observadores. Exemplo: observers.detach(A, B, C) 
 # <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]>
 
 order.canceled?
@@ -132,26 +132,26 @@ order.observers.notify(:canceled)  # nada acontecerá, pois não há observadore
 
 **Destaques do exemplo anterior:**
 
-Para evitar um comportamento indesejado, você precisa marcar o "subject"(assunto) como alterado antes de notificar seus observadores sobre algum evento.
+Para evitar um comportamento indesejado, você precisa marcar o "subject" (sujeito) como alterado antes de notificar seus observadores sobre algum evento.
 
-Você pode fazer isso ao usar o método `#subject_changed!`. Ele marcará automaticamente o assunto como alterado.
+Você pode fazer isso ao usar o método `#subject_changed!`. Ele marcará automaticamente o sujeito como alterado.
 
-Mas se você precisar aplicar alguma condicional para marcar uma mudança, você pode usar o método `#subject_changed`, por exemplo, `observers.subject_changed(name != new_name)`
+Mas se você precisar aplicar alguma condicional para marcar uma mudança, você pode usar o método `#subject_changed`. Exemplo: `observers.subject_changed(name != new_name)`
 
-O método `#notify` sempre requer um evento para fazer uma transmissão. Portanto, se você tentar usá-lo sem um ou mais eventos (símbolo), você obterá uma exceção.
+O método `#notify` sempre requer um evento para fazer uma transmissão. Portanto, se você tentar usá-lo sem nenhum evento, você obterá uma exceção.
 
 ```ruby
 order.observers.notify
-# ArgumentError (sem eventos (esperado pelo menos 1))
+# ArgumentError (no events (expected at least 1))
 ```
 
 [⬆️ Voltar para o índice](#índice-)
 
 ### Compartilhando um contexto com seus observadores
 
-Para compartilhar um valor de contexto (qualquer tipo de objeto Ruby) com um ou mais observadores, você precisará usar a palavra-chave `:context` como o último argumento do  método `#attach`. Este recurso oferece a você uma oportunidade única de compartilhar um valor no momento de anexar.
+Para compartilhar um valor de contexto (qualquer tipo de objeto Ruby) com um ou mais observadores, você precisará usar a palavra-chave `:context` como o último argumento do  método `#attach`. Este recurso oferece a você uma oportunidade única de compartilhar um valor no momento de anexar um *observer*.
 
-Quando o método observer recebe dois argumentos, o primeiro será o sujeito e o segundo uma instância `Micro::Observers::Event` desse terá o valor de contexto fornecido.
+Quando o método do observer receber dois argumentos, o primeiro será o sujeito e o segundo uma instância `Micro::Observers::Event` que terá o valor do contexto.
 
 ```ruby
 class Order
@@ -166,22 +166,22 @@ end
 
 module OrderEvents
   def self.canceled(order, event)
-    puts "The order #(#{order.object_id}) has been canceled. (from: #{event.context[:from]})"  # event.ctx é um apelido para event.context 
+    puts "The order #(#{order.object_id}) has been canceled. (from: #{event.context[:from]})"  # event.ctx é um alias para event.context 
   end
 end
 
 order = Order.new
-order.observers.attach(OrderEvents, context: { from: 'example #2' })  # anexando vários observadores. por exemplo, observers.attach (A, B, context: {hello:: world}) 
+order.observers.attach(OrderEvents, context: { from: 'example #2' })  # anexando vários observadores. Exemplo: observers.attach(A, B, context: {hello:: world}) 
 order.cancel!
 # A mensagem abaixo será impressa pelo observador (OrderEvents): 
-# O pedido # (70196221441820) foi cancelado. (de: exemplo # 2)
+# The order #(70196221441820) has been canceled. (from: example #2)
 ```
 
 [⬆️ Voltar para o índice](#índice-)
 
 ### Compartilhando dados ao notificar os observadores
 
-Como mencionado anteriormente, o [`event context`](#compartilhando-um-contexto-com-seus-observadores) é um valor armazenado quando você anexa seu observador. Mas, às vezes, será útil enviar alguns dados adicionais ao transmitir um evento aos observadores. O `event data` dá a você esta oportunidade única de compartilhar algum valor no momento da notificação.
+Como mencionado anteriormente, o [`event context`](#compartilhando-um-contexto-com-seus-observadores) é um valor armazenado quando você anexa seu *observer*. Mas, às vezes, será útil enviar alguns dados adicionais ao transmitir um evento aos seus *observers*. O `event data` dá a você esta oportunidade única de compartilhar algum valor no momento da notificação.
 
 ```ruby
 class Order
@@ -200,7 +200,7 @@ order.observers.subject_changed!
 order.observers.notify(:changed, data: 1)
 
 # A mensagem abaixo será impressa pelo observador (OrderHandler): 
-# O pedido # (70196221441820) recebeu o número 1 do exemplo # 3.
+# The order #(70196221441820) received the number 1 from example #3.
 ```
 
 [⬆️ Voltar para o índice](#índice-)
@@ -211,19 +211,19 @@ O `Micro::Observers::Event` é o payload do evento. Acompanhe abaixo todas as su
 
 - `#name` será o evento transmitido.
 - `#subject` será o sujeito observado.
-- `#context` serão [os dados de contexto](#compartilhando-um-contexto-com-seus-observadores) que foram definidos no momento em que você anexa o observador.
+- `#context` serão [os dados de contexto](#compartilhando-um-contexto-com-seus-observadores) que foram definidos no momento em que você anexa o *observer*.
 - `#data` será [o valor compartilhado na notificação dos observadores](#compartilhando-dados-ao-notificar-os-observadores).
 - `#ctx` é um apelido para o método `#context`.
-- `#subj` é um apelido para o método `#subject`.
+- `#subj` é um *alias* para o método `#subject`.
 
 [⬆️ Voltar para o índice](#índice-)
 
 ### Usando um calleable como um observador
 
-O método `observers.on()` permite que você anexe um calleable(chamável) como um observador. Ele pode receber três opções:
+O método `observers.on()` permite que você anexe um callable (objeto que responda ao método `call`) como um observador. Ele pode receber três opções:
 1. `:event` o nome do evento esperado.
-2. `:call` o próprio objeto calleable.
-3. `:with` (opcional) pode definir o valor que será usado como argumento do objeto calleable. Portanto, se for um Proc, uma instância de `Micro::Observers::Event` será recebida como o argumento `Proc` e sua saída será o argumento que pode ser chamado. Mas se essa opção não foi definida, a instância `Micro::Observers::Event` será o argumento calleable.
+2. `:call` o próprio callable.
+3. `:with` (opcional) pode definir o valor que será usado como argumento do objeto callable. Portanto, se for um `Proc`, uma instância de `Micro::Observers::Event` será recebida como o argumento `Proc` e sua saída será o argumento que pode ser chamado. Mas se essa opção não for definida, a instância `Micro::Observers::Event` será o argumento do callable.
 
 ```ruby
 class Person
@@ -259,14 +259,14 @@ person.observers.on(
 person.name = 'Coutinho'
 
 # A mensagem abaixo será impressa pelo observador (PrintPersonName): 
-# Nome da pessoa: Coutinho, número: 0.5018509191706862
+# Person name: Coutinho, number: 0.5018509191706862
 ```
 
 [⬆️ Voltar para o índice](#índice-)
 
 ### Chamando os observadores
 
-Você pode usar um calleable/chamavél (uma classe, módulo ou objeto que responda ao método de chamada) para ser seus observadores. Para fazer isso, você só precisa usar o método `#call` em vez de `#notify`.
+Você pode usar um callable (uma classe, módulo ou objeto que responda ao método `call`) para ser seu *observer*. Para fazer isso, você só precisa usar o método `#call` em vez de `#notify`.
 
 ```ruby
 class Order
@@ -274,7 +274,7 @@ class Order
 
   def cancel!
     observers.subject_changed!
-    observers.call # na prática, este é um atalho para observers.notify (:call)
+    observers.call # na prática, este é um alias para observers.notify(:call)
     self
   end
 end
@@ -286,7 +286,7 @@ order.observers.attach(OrderCancellation)
 order.cancel!
 
 # A mensagem abaixo será impressa pelo observador (OrderCancellation): 
-# O pedido # (70196221441820) foi cancelado.
+# The order #(70196221441820) has been canceled.
 ```
 
 > **Nota**: O `observers.call` pode receber um ou mais eventos, mas neste caso, o evento padrão (`call`) não será transmitido.
@@ -297,7 +297,7 @@ order.cancel!
 
 Este recurso deve ser usado com cuidado!
 
-Se você usar os métodos `#notify!` ou `#call!` você não precisará marcar observadores com `#subject_changed`.
+Se você usar os métodos `#notify!` ou `#call!` você não precisará marcar observers com `#subject_changed`.
 
 [⬆️ Voltar para o índice](#índice-)
 
@@ -310,23 +310,23 @@ Exemplo de Gemfile:
 gem 'u-observers', require: 'u-observers/for/active_record'
 ```
 
-Este recurso irá expor módulos que podem ser usados ​​para adicionar macros (métodos estáticos) que foram projetados para funcionar com `ActiveModel`/`ActiveRecordcallbacks`. por exemplo:
+Este recurso irá expor módulos que podem ser usados ​​para adicionar macros (métodos estáticos) que foram projetados para funcionar com os callbacks do `ActiveModel`/`ActiveRecord`. Exemplo:
 
 #### notify_observers_on()
 
-O `notify_observers_on` permite que você defina um ou mais callbacks `ActiveModel`/`ActiveRecord`, que serão usados ​​para notificar seus observadores de objeto.
+O `notify_observers_on` permite que você defina um ou mais callbacks do `ActiveModel`/`ActiveRecord`, que serão usados ​​para notificar seus *observers*.
 
 ```ruby
 class Post < ActiveRecord::Base
   include ::Micro::Observers::For::ActiveRecord
 
-  notify_observers_on(:after_commit) # usando vários callbacks. por exemplo, notificar_observadores_on (:before_save, :after_commit)
+  notify_observers_on(:after_commit) # usando vários callbacks. Exemplo: notificar_observadores_on(:before_save, :after_commit)
 
   # O método acima faz o mesmo que o exemplo comentado abaixo.
   # 
   # after_commit do | record | 
-  # record.subject_changed! 
-  # record.notify (:after_commit) 
+  #   record.subject_changed! 
+  #   record.notify (:after_commit) 
   # end 
 end
 
@@ -357,7 +357,7 @@ end
 
 #### notify_observers()
 
-O `notify_observers` permite definir um ou mais eventos, que serão utilizados para notificar após a execução de algum clalback `ActiveModel`/`ActiveRecordcallback`.
+O `notify_observers` permite definir um ou mais eventos, que serão utilizados para notificar após a execução de algum callback do `ActiveModel`/`ActiveRecord`.
 
 ```ruby
 class Post < ActiveRecord::Base
@@ -408,11 +408,11 @@ Para instalar esta gem em sua máquina local, execute `bundle exec rake install`
 
 ## Contribuindo
 
-Relatórios de bugs e solicitações de pull-requests são bem-vindos no GitHub em https://github.com/serradura/u-observers. Este projeto pretende ser um espaço seguro e acolhedor para colaboração, e espera-se que os colaboradores sigam o [código de conduta](https://github.com/serradura/u-observers/blob/master/CODE_OF_CONDUCT.md).
+Reportar bugs e solicitações de pull-requests são bem-vindos no GitHub em https://github.com/serradura/u-observers. Este projeto pretende ser um espaço seguro e acolhedor para colaboração, e espera-se que os colaboradores sigam o [código de conduta](https://github.com/serradura/u-observers/blob/master/CODE_OF_CONDUCT.md).
 
 ## License
 
-A gema está disponível como código aberto sob os termos da [Licença MIT](https://opensource.org/licenses/MIT).
+A gem está disponível como código aberto sob os termos da [Licença MIT](https://opensource.org/licenses/MIT).
 
 ## Código de conduta
 
