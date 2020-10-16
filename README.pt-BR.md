@@ -38,7 +38,7 @@ Por causa desse problema, decidi criar uma gem que encapsula o padrão sem alter
     - [Compartilhando um contexto com seus observadores](#compartilhando-um-contexto-com-seus-observadores)
     - [Compartilhando dados ao notificar os observadores](#compartilhando-dados-ao-notificar-os-observadores)
     - [O que é `Micro::Observers::Event`?](#o-que-é-microobserversevent)
-    - [Usando um calleable como um observador](#usando-um-calleable-como-um-observador)
+    - [Usando um callable como um observador](#usando-um-callable-como-um-observador)
     - [Chamando os observadores](#chamando-os-observadores)
     - [Notificar observadores sem marcá-los como alterados](#notificar-observadores-sem-marcá-los-como-alterados)
     - [Integrações ActiveRecord e ActiveModel](#integrações-activerecord-e-activemodel)
@@ -218,11 +218,9 @@ O `Micro::Observers::Event` é o payload do evento. Veja abaixo todas as suas pr
 
 [⬆️ Voltar para o índice](#índice-)
 
-### Usando um calleable como um observador
+### Usando um callable como um observador
 
 O método `observers.on()` permite que você anexe um callable (objeto que responda ao método `call`) como um observador.
-
-Um callable tende a ter uma responsabilidade bem definida, promovendo assim o uso de [SRP (Single-responsibility principle).
 
 Normalmente, um callable tem uma responsabilidade bem definida (faz apenas uma coisa), por isso, tende a ser mais amigável com o [SRP (princípio de responsabilidade única)](https://en.wikipedia.org/wiki/Single-responsibility_principle) do que um observador convencional (que poderia ter N métodos para responder a diferentes tipos de notificação).
 
@@ -230,7 +228,7 @@ Este método recebe as opções abaixo:
 1. `:event` o nome do evento esperado.
 2. `:call` o próprio callable.
 3. `:with` (opcional) pode definir o valor que será usado como argumento do objeto callable. Portanto, se for um `Proc`, uma instância de `Micro::Observers::Event` será recebida como o argumento `Proc` e sua saída será o argumento que pode ser chamado. Mas se essa opção não for definida, a instância `Micro::Observers::Event` será o argumento do callable.
-4. `#context` serão os dados de contexto que foram definidos no momento em que você anexa o *observer*.
+4. `:context` serão os dados de contexto que foram definidos no momento em que você anexa o *observer*.
 
 ```ruby
 class Person
@@ -260,7 +258,8 @@ person = Person.new('Aristóteles')
 person.observers.on(
   event: :name_has_been_changed,
   call: PrintPersonName,
-  with: -> event { {person: event.subject, number: rand} }
+  with: -> event { {person: event.subject, number: event.context} },
+  context: rand
 )
 
 person.name = 'Coutinho'
