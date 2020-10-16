@@ -4,8 +4,10 @@ module Micro
   module Observers
 
     class Event::Names
-      def self.[](value, default: Utils::EMPTY_ARRAY)
-        values = Utils.compact_array(value)
+      EMPTY_ARRAY = [].freeze
+
+      def self.[](value, default: EMPTY_ARRAY)
+        values = Utils::Arrays.flatten_and_compact(value)
 
         values.empty? ? default : values
       end

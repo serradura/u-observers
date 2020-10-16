@@ -4,11 +4,13 @@ module Micro
   module Observers
 
     class Set
+      EMPTY_HASH = {}.freeze
+
       MapSubscriber = -> (observer, options) { [:observer, observer, options[:context]] }
 
       MapSubscribers = -> (value) do
-        array = Utils.compact_array(value.kind_of?(Array) ? value : [])
-        array.map { |observer| MapSubscriber[observer, Utils::EMPTY_HASH] }
+        array = Utils::Arrays.flatten_and_compact(value.kind_of?(Array) ? value : [])
+        array.map { |observer| MapSubscriber[observer, EMPTY_HASH] }
       end
 
       GetObserver = -> subscriber { subscriber[0] == :observer ? subscriber[1] : subscriber[2][0] }
@@ -60,9 +62,9 @@ module Micro
       end
 
       def attach(*args)
-        options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
+        options = args.last.is_a?(Hash) ? args.pop : EMPTY_HASH
 
-        Utils.compact_array(args).each do |observer|
+        Utils::Arrays.flatten_and_compact(args).each do |observer|
           @subscribers << MapSubscriber[observer, options] unless included?(observer)
         end
 
@@ -70,14 +72,14 @@ module Micro
       end
 
       def detach(*args)
-        Utils.compact_array(args).each do |observer|
+        Utils::Arrays.flatten_and_compact(args).each do |observer|
           @subscribers.delete_if(&EqualTo[observer])
         end
 
         self
       end
 
-      def on(options = Utils::EMPTY_HASH)
+      def on(options = EMPTY_HASH)
         event, callable, with, context = options[:event], options[:call], options[:with], options[:context]
 
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
@@ -168,7 +170,7 @@ module Micro
           callable.call(callable_arg)
         end
 
-      private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT
+      private_constant :EMPTY_HASH, :INVALID_BOOLEAN_MSG, :CALL_EVENT
       private_constant :MapSubscriber, :MapSubscribers, :GetObserver, :EqualTo
     end
 
