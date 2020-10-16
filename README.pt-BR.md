@@ -289,7 +289,7 @@ order.cancel!
 # The order #(70196221441820) has been canceled.
 ```
 
-> **Nota**: O `observers.call` pode receber um ou mais eventos, mas neste caso, o evento padrão (`call`) não será transmitido.
+> **Nota**: O `observers.call` pode receber um ou mais eventos, mas no caso de receber eventos/argumentos, o evento padrão (`call`) não será transmitido.
 
 [⬆️ Voltar para o índice](#índice-)
 
