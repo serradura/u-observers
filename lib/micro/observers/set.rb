@@ -78,11 +78,11 @@ module Micro
       end
 
       def on(options = Utils::EMPTY_HASH)
-        event, callable, with = options[:event], options[:call], options[:with]
+        event, callable, with, context = options[:event], options[:call], options[:with], options[:context]
 
         return self unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-        @subscribers << [:callable, event, [callable, with]] unless included?(callable)
+        @subscribers << [:callable, event, [callable, with, context]] unless included?(callable)
 
         self
       end
@@ -152,15 +152,15 @@ module Micro
           handler.call(@subject, Event.new(event_name, @subject, context, data))
         end
 
-        def notify_callable(expected_event_name, event_name, context, data)
+        def notify_callable(expected_event_name, event_name, opt, data)
           return if expected_event_name != event_name
 
-          callable, with = context[0], context[1]
+          callable, with, context = opt[0], opt[1], opt[2]
           callable_arg =
             if with && !with.is_a?(Proc)
               with
             else
-              event = Event.new(event_name, @subject, nil, data)
+              event = Event.new(event_name, @subject, context, data)
 
               with.is_a?(Proc) ? with.call(event) : event
             end
