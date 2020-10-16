@@ -46,7 +46,7 @@ Por causa desse problema, decidi criar uma gem que encapsula o padrão sem alter
       - [notify_observers()](#notify_observers)
   - [Desenvolvimento](#desenvolvimento)
   - [Contribuindo](#contribuindo)
-  - [Licença](#licença)
+  - [License](#license)
   - [Código de conduta](#código-de-conduta)
 
 # Instalação
@@ -61,7 +61,8 @@ gem 'u-observers'
 
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
-| 2.0.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| unreleased  | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.0.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 | 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Nota**: O ActiveRecord não é uma dependência, mas você pode adicionar um módulo para habilitar alguns métodos estáticos que foram projetados para serem usados ​​com seus [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
@@ -107,20 +108,20 @@ end
 order = Order.new
 #<Order:0x00007fb5dd8fce70 @code="X0o9yf1GsdQFvLR4", @status=:draft>
 
-order.observers.attach(OrderEvents)  # anexando vários observadores. Exemplo: observers.attach(A, B, C) 
+order.observers.attach(OrderEvents)  # anexando vários observadores. Exemplo: observers.attach(A, B, C)
 # <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[OrderEvents]>
 
 order.canceled?
 # false
 
 order.cancel!
-# A mensagem abaixo será impressa pelo observador (OrderEvents): 
+# A mensagem abaixo será impressa pelo observador (OrderEvents):
 # The order #(X0o9yf1GsdQFvLR4) has been canceled
 
 order.canceled?
 # true
 
-order.observers.detach(OrderEvents)  # desanexando vários observadores. Exemplo: observers.detach(A, B, C) 
+order.observers.detach(OrderEvents)  # desanexando vários observadores. Exemplo: observers.detach(A, B, C)
 # <#Micro::Observers::Set @subject=#<Order:0x00007fb5dd8fce70> @subject_changed=false @subscribers=[]>
 
 order.canceled?
@@ -166,14 +167,14 @@ end
 
 module OrderEvents
   def self.canceled(order, event)
-    puts "The order #(#{order.object_id}) has been canceled. (from: #{event.context[:from]})"  # event.ctx é um alias para event.context 
+    puts "The order #(#{order.object_id}) has been canceled. (from: #{event.context[:from]})"  # event.ctx é um alias para event.context
   end
 end
 
 order = Order.new
-order.observers.attach(OrderEvents, context: { from: 'example #2' })  # anexando vários observadores. Exemplo: observers.attach(A, B, context: {hello:: world}) 
+order.observers.attach(OrderEvents, context: { from: 'example #2' })  # anexando vários observadores. Exemplo: observers.attach(A, B, context: {hello:: world})
 order.cancel!
-# A mensagem abaixo será impressa pelo observador (OrderEvents): 
+# A mensagem abaixo será impressa pelo observador (OrderEvents):
 # The order #(70196221441820) has been canceled. (from: example #2)
 ```
 
@@ -199,7 +200,7 @@ order.observers.attach(OrderHandler, context: { from: 'example #3' })
 order.observers.subject_changed!
 order.observers.notify(:changed, data: 1)
 
-# A mensagem abaixo será impressa pelo observador (OrderHandler): 
+# A mensagem abaixo será impressa pelo observador (OrderHandler):
 # The order #(70196221441820) received the number 1 from example #3.
 ```
 
@@ -258,7 +259,7 @@ person.observers.on(
 
 person.name = 'Coutinho'
 
-# A mensagem abaixo será impressa pelo observador (PrintPersonName): 
+# A mensagem abaixo será impressa pelo observador (PrintPersonName):
 # Person name: Coutinho, number: 0.5018509191706862
 ```
 
@@ -285,7 +286,7 @@ order = Order.new
 order.observers.attach(OrderCancellation)
 order.cancel!
 
-# A mensagem abaixo será impressa pelo observador (OrderCancellation): 
+# A mensagem abaixo será impressa pelo observador (OrderCancellation):
 # The order #(70196221441820) has been canceled.
 ```
 
@@ -323,11 +324,11 @@ class Post < ActiveRecord::Base
   notify_observers_on(:after_commit) # usando vários callbacks. Exemplo: notificar_observadores_on(:before_save, :after_commit)
 
   # O método acima faz o mesmo que o exemplo comentado abaixo.
-  # 
-  # after_commit do | record | 
-  #   record.subject_changed! 
-  #   record.notify (:after_commit) 
-  # end 
+  #
+  # after_commit do | record |
+  #   record.subject_changed!
+  #   record.notify (:after_commit)
+  # end
 end
 
 module TitlePrinter
@@ -365,12 +366,12 @@ class Post < ActiveRecord::Base
 
   after_commit(&notify_observers(:transaction_completed))
 
-  # O método acima faz o mesmo que o exemplo comentado abaixo. 
-  # 
-  # after_commit do | record | 
-  # record.subject_changed! 
-  # record.notify (:transaction_completed) 
-  # end 
+  # O método acima faz o mesmo que o exemplo comentado abaixo.
+  #
+  # after_commit do | record |
+  # record.subject_changed!
+  # record.notify (:transaction_completed)
+  # end
 end
 
 module TitlePrinter

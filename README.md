@@ -30,6 +30,8 @@ Ruby's standard library [has an abstraction](https://ruby-doc.org/stdlib-2.7.1/l
 
 Because of this issue, I decided to create a gem that encapsulates the pattern without changing the object's implementation so much. The `Micro::Observers` includes just one instance method in the target class (its instance will be the observed subject).
 
+> **Note:** Você entende português? 🇧🇷&nbsp;🇵🇹 Verifique o [README traduzido em pt-BR](https://github.com/serradura/u-observers/blob/main/README.pt-BR.md).
+
 # Table of contents <!-- omit in toc -->
 - [Installation](#installation)
 - [Compatibility](#compatibility)
@@ -60,7 +62,8 @@ gem 'u-observers'
 
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
-| 2.0.0       | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| unreleased  | main    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.0.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 | 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Note**: The ActiveRecord isn't a dependency, but you could add a module to enable some static methods that were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
