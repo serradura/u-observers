@@ -28,7 +28,7 @@ This gem implements the observer pattern [[1]](https://en.wikipedia.org/wiki/Obs
 
 Ruby's standard library [has an abstraction](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html) that enables you to use this pattern. But its design can conflict with other mainstream libraries, like the [`ActiveModel`/`ActiveRecord`](https://api.rubyonrails.org/classes/ActiveModel/Dirty.html#method-i-changed), which also has the [`changed`](https://ruby-doc.org/stdlib-2.7.1/libdoc/observer/rdoc/Observable.html#method-i-changed) method. In this case, the behavior of the Stdlib will be compromised.
 
-Because of this issue, I decided to create a gem that encapsulates the pattern without changing the object's implementation so much. The `Micro::Observers` includes just one instance method in the target class (its instance will be the observed subject).
+Because of this issue, I decided to create a gem that encapsulates the pattern without changing the object's implementation so much. The `Micro::Observers` includes just one instance method in the target class (its instance will be the observed subject/object).
 
 > **Note:** Você entende português? 🇧🇷&nbsp;🇵🇹 Verifique o [README traduzido em pt-BR](https://github.com/serradura/u-observers/blob/main/README.pt-BR.md).
 
@@ -221,10 +221,15 @@ The `Micro::Observers::Event` is the event payload. Follow below all of its prop
 
 ### Using a callable as an observer
 
-The `observers.on()` method enables you to attach a callable as an observer. It could receive three options:
+The `observers.on()` method enables you to attach a callable as an observer.
+
+Usually, a callable has a well-defined responsibility (do only one thing), because of this, it tends to be more [SRP (Single-responsibility principle)](https://en.wikipedia.org/wiki/Single-responsibility_principle). friendly than a conventional observer (that could have N methods to respond to different kinds of notification).
+
+This method receives the below options:
 1. `:event` the expected event name.
 2. `:call` the callable object itself.
 3. `:with` (optional) it can define the value which will be used as the callable object's argument. So, if it is a `Proc`, a `Micro::Observers::Event` instance will be received as the `Proc` argument, and its output will be the callable argument. But if this option wasn't defined, the `Micro::Observers::Event` instance will be the callable argument.
+4. `:context` will be the context data that was defined in the moment that you attach the observer.
 
 ```ruby
 class Person
@@ -254,7 +259,8 @@ person = Person.new('Rodrigo')
 person.observers.on(
   event: :name_has_been_changed,
   call: PrintPersonName,
-  with: -> event { {person: event.subject, number: rand} }
+  with: -> event { {person: event.subject, number: event.context} },
+  context: rand
 )
 
 person.name = 'Serradura'
