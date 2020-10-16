@@ -26,8 +26,8 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
       end
 
       assert_equal(
-        'The book was successfully created! Title: Observers',
-        StreamInMemory.history[0]
+        ['The book was successfully created! Title: Observers'],
+        StreamInMemory.history
       )
     end
 
@@ -56,8 +56,12 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
         post.save
       end
 
-      assert_equal('Title: Hello world', StreamInMemory.history[0])
-      assert_equal('Title: Hello world, from: Test 1', StreamInMemory.history[1])
+      assert_equal(
+        [
+          'Title: Hello world',
+          'Title: Hello world, from: Test 1'
+        ], StreamInMemory.history
+      )
     end
   end
 end

@@ -62,7 +62,7 @@ gem 'u-observers'
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
 | unreleased  | main    | >= 2.2.0 | >= 3.2, < 6.1 |
-| 2.0.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.1.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 | 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Nota**: O ActiveRecord não é uma dependência, mas você pode adicionar um módulo para habilitar alguns métodos estáticos que foram projetados para serem usados ​​com seus [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
@@ -208,8 +208,7 @@ order.observers.notify(:changed, data: 1)
 
 ### O que é `Micro::Observers::Event`?
 
-O `Micro::Observers::Event` é o payload do evento. Acompanhe abaixo todas as suas propriedades:
-
+O `Micro::Observers::Event` é o payload do evento. Veja abaixo todas as suas propriedades:
 - `#name` será o evento transmitido.
 - `#subject` será o sujeito observado.
 - `#context` serão [os dados de contexto](#compartilhando-um-contexto-com-seus-observadores) que foram definidos no momento em que você anexa o *observer*.
@@ -221,10 +220,17 @@ O `Micro::Observers::Event` é o payload do evento. Acompanhe abaixo todas as su
 
 ### Usando um calleable como um observador
 
-O método `observers.on()` permite que você anexe um callable (objeto que responda ao método `call`) como um observador. Ele pode receber três opções:
+O método `observers.on()` permite que você anexe um callable (objeto que responda ao método `call`) como um observador.
+
+Um callable tende a ter uma responsabilidade bem definida, promovendo assim o uso de [SRP (Single-responsibility principle).
+
+Normalmente, um callable tem uma responsabilidade bem definida (faz apenas uma coisa), por isso, tende a ser mais amigável com o [SRP (princípio de responsabilidade única)](https://en.wikipedia.org/wiki/Single-responsibility_principle) do que um observador convencional (que poderia ter N métodos para responder a diferentes tipos de notificação).
+
+Este método recebe as opções abaixo:
 1. `:event` o nome do evento esperado.
 2. `:call` o próprio callable.
 3. `:with` (opcional) pode definir o valor que será usado como argumento do objeto callable. Portanto, se for um `Proc`, uma instância de `Micro::Observers::Event` será recebida como o argumento `Proc` e sua saída será o argumento que pode ser chamado. Mas se essa opção não for definida, a instância `Micro::Observers::Event` será o argumento do callable.
+4. `#context` serão os dados de contexto que foram definidos no momento em que você anexa o *observer*.
 
 ```ruby
 class Person

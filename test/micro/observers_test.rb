@@ -27,8 +27,8 @@ class Micro::ObserversTest < Minitest::Test
       end
 
       assert_equal(
-        'The book was successfully created! Title: Observers',
-        StreamInMemory.history[0]
+        ['The book was successfully created! Title: Observers'],
+        StreamInMemory.history
       )
     end
 
@@ -57,8 +57,12 @@ class Micro::ObserversTest < Minitest::Test
         post.save
       end
 
-      assert_equal('Title: Hello world', StreamInMemory.history[0])
-      assert_equal('Title: Hello world, from: Test 1', StreamInMemory.history[1])
+      assert_equal(
+        [
+          'Title: Hello world',
+          'Title: Hello world, from: Test 1'
+        ], StreamInMemory.history
+      )
     end
   end
 
@@ -84,7 +88,7 @@ class Micro::ObserversTest < Minitest::Test
     StreamInMemory.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
   end
 
-  def test_observers_caller
+  def test_a_callable_observer_without_providing_a_context
     rand_number = rand
 
     person = Person.new('Rodrigo')
@@ -96,6 +100,22 @@ class Micro::ObserversTest < Minitest::Test
 
     person.name = 'Serradura'
 
-    assert_equal("Person name: Serradura, number: #{rand_number}", StreamInMemory.history[0])
+    assert_equal(["Person name: Serradura, number: #{rand_number}"], StreamInMemory.history)
+  end
+
+  def test_a_callable_observer_with_a_context
+    rand_number = rand
+
+    person = Person.new('Rodrigo')
+    person.observers.on(
+      event: :name_has_been_changed,
+      call: PrintPersonName,
+      with: -> event { {person: event.subject, number: event.context} },
+      context: rand_number,
+    )
+
+    person.name = 'Serradura'
+
+    assert_equal(["Person name: Serradura, number: #{rand_number}"], StreamInMemory.history)
   end
 end
