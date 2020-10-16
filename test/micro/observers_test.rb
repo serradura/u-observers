@@ -27,8 +27,8 @@ class Micro::ObserversTest < Minitest::Test
       end
 
       assert_equal(
-        'The book was successfully created! Title: Observers',
-        StreamInMemory.history[0]
+        ['The book was successfully created! Title: Observers'],
+        StreamInMemory.history
       )
     end
 
@@ -57,8 +57,12 @@ class Micro::ObserversTest < Minitest::Test
         post.save
       end
 
-      assert_equal('Title: Hello world', StreamInMemory.history[0])
-      assert_equal('Title: Hello world, from: Test 1', StreamInMemory.history[1])
+      assert_equal(
+        [
+          'Title: Hello world',
+          'Title: Hello world, from: Test 1'
+        ], StreamInMemory.history
+      )
     end
   end
 
@@ -96,7 +100,7 @@ class Micro::ObserversTest < Minitest::Test
 
     person.name = 'Serradura'
 
-    assert_equal("Person name: Serradura, number: #{rand_number}", StreamInMemory.history[0])
+    assert_equal(["Person name: Serradura, number: #{rand_number}"], StreamInMemory.history)
   end
 
   def test_a_callable_observer_with_a_context
@@ -112,6 +116,6 @@ class Micro::ObserversTest < Minitest::Test
 
     person.name = 'Serradura'
 
-    assert_equal("Person name: Serradura, number: #{rand_number}", StreamInMemory.history[0])
+    assert_equal(["Person name: Serradura, number: #{rand_number}"], StreamInMemory.history)
   end
 end
