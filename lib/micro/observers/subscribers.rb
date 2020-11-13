@@ -24,15 +24,15 @@ module Micro
         @relation.empty?
       end
 
-      def included?(observer)
-        @relation.any?(&EqualTo[observer])
+      def include?(subscriber)
+        @relation.any?(&EqualTo[subscriber])
       end
 
       def attach(args)
         options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
 
         Utils::Arrays.flatten_and_compact(args).each do |observer|
-          @relation << MapObserver[observer, options] unless included?(observer)
+          @relation << MapObserver[observer, options] unless include?(observer)
         end
 
         true
@@ -51,7 +51,7 @@ module Micro
 
         return true unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-        @relation << [:callable, event, [callable, with, context]] unless included?(callable)
+        @relation << [:callable, event, [callable, with, context]] unless include?(callable)
 
         true
       end

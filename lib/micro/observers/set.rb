@@ -35,9 +35,10 @@ module Micro
         subject_changed(true)
       end
 
-      def included?(observer)
-        @subscribers.any?(&EqualTo[observer])
+      def include?(observer)
+        @subscribers.include?(observer)
       end
+      alias included? include?
 
       def attach(*args)
         @subscribers.attach(args) and self
