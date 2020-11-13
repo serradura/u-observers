@@ -4,6 +4,8 @@ module Micro
   module Observers
     require 'micro/observers/utils'
     require 'micro/observers/event'
+    require 'micro/observers/subscribers'
+    require 'micro/observers/broadcast'
     require 'micro/observers/set'
 
     def observers
