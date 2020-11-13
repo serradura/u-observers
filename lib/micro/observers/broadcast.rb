@@ -28,40 +28,45 @@ module Micro
           subject = observers.__subject__
 
           event_names.each do |event_name|
-            observers.__each__ do |strategy, observer, context|
-              case strategy
-              when :observer then notify_observer(subject, observer, event_name, context, data)
-              when :callable then notify_callable(subject, observer, event_name, context, data)
-              end
+            observers.__each__(&NotifyWith[event_name, subject, data])
+          end
+        end
+
+        NotifyWith = -> (event_name, subject, data) do
+          -> observer_data do
+            strategy, observer, context = observer_data
+
+            if strategy == :observer && observer.respond_to?(event_name)
+              event = Event.new(event_name, subject, context, data)
+
+              return NotifyHandler.(observer, event)
+            end
+
+            if strategy == :callable && observer == event_name
+              return NotifyCallable.(event_name, subject, context, data)
             end
           end
         end
 
-        def notify_observer(subject, observer, event_name, context, data)
-          return unless observer.respond_to?(event_name)
+        NotifyHandler = -> (observer, event) do
+          handler = observer.is_a?(Proc) ? observer : observer.method(event.name)
 
-          handler = observer.is_a?(Proc) ? observer : observer.method(event_name)
+          return handler.call(event.subject) if handler.arity == 1
 
-          return handler.call(subject) if handler.arity == 1
-
-          handler.call(subject, Event.new(event_name, subject, context, data))
+          handler.call(event.subject, event)
         end
 
-        def notify_callable(subject, expected_event_name, event_name, opt, data)
-          return if expected_event_name != event_name
-
+        NotifyCallable = -> (event_name, subject, opt, data) do
           callable, with, context = opt[0], opt[1], opt[2]
-          callable_arg =
-            if with && !with.is_a?(Proc)
-              with
-            else
-              event = Event.new(event_name, subject, context, data)
 
-              with.is_a?(Proc) ? with.call(event) : event
-            end
+          return callable.call(with) if with && !with.is_a?(Proc)
 
-          callable.call(callable_arg)
+          event = Event.new(event_name, subject, context, data)
+
+          callable.call(with.is_a?(Proc) ? with.call(event) : event)
         end
+
+      private_constant :NotifyWith, :NotifyHandler, :NotifyCallable
     end
 
   end
