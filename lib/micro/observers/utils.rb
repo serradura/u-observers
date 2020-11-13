@@ -4,9 +4,13 @@ module Micro
   module Observers
 
     module Utils
+      EMPTY_HASH = {}.freeze
+
       module Arrays
         def self.flatten_and_compact(value)
-          Array(value).flatten.tap(&:compact!)
+          array = Array(value).flatten
+          array.compact!
+          array
         end
       end
     end
