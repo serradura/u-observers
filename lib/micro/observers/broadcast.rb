@@ -28,32 +28,36 @@ module Micro
           subject = observers.__subject__
 
           event_names.each do |event_name|
-            observers.__each__(&NotifyWith[event_name, subject, data])
+            observers.__each_with__(EventHandler[event_name, subject, data])
           end
         end
 
-        NotifyWith = -> (event_name, subject, data) do
-          -> observer_data do
+        EventHandler = -> (event_name, subject, data) do
+          -> (observer_data) do
             strategy, observer, context = observer_data
 
             if strategy == :observer && observer.respond_to?(event_name)
               event = Event.new(event_name, subject, context, data)
 
-              return NotifyHandler.(observer, event)
+              return NotifyObserver.(observer, event)
             end
 
             if strategy == :callable && observer == event_name
               return NotifyCallable.(event_name, subject, context, data)
             end
+
+            false
           end
         end
 
-        NotifyHandler = -> (observer, event) do
+        NotifyObserver = -> (observer, event) do
           handler = observer.is_a?(Proc) ? observer : observer.method(event.name)
 
           return handler.call(event.subject) if handler.arity == 1
 
           handler.call(event.subject, event)
+
+          true
         end
 
         NotifyCallable = -> (event_name, subject, opt, data) do
@@ -64,9 +68,11 @@ module Micro
           event = Event.new(event_name, subject, context, data)
 
           callable.call(with.is_a?(Proc) ? with.call(event) : event)
+
+          true
         end
 
-      private_constant :NotifyWith, :NotifyHandler, :NotifyCallable
+      private_constant :EventHandler, :NotifyObserver, :NotifyCallable
     end
 
   end

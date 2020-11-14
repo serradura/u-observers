@@ -72,5 +72,56 @@ module Micro::Observers
 
       assert_predicate(StreamInMemory.history, :empty?)
     end
+
+    def test_the_detaching_using_off
+      person = Person.new(name: 'Rodrigo')
+
+      # --
+
+      person.observers.attach(PersonNamePrinter)
+      person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
+
+      assert_equal(2, person.observers.count)
+
+      person.observers.off(:name_has_been_changed)
+      assert_equal(1, person.observers.count)
+
+      assert person.observers.include?(PersonNamePrinter)
+
+      person.observers.off(PersonNamePrinter)
+
+      assert_equal(0, person.observers.count)
+
+      # --
+
+      person.observers.attach(PersonNamePrinter)
+      person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
+
+      assert_equal(2, person.observers.count)
+
+      person.observers.off(:name_has_been_changed, PersonNamePrinter)
+      assert_equal(0, person.observers.count)
+
+      # --
+
+      person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
+
+      assert_equal(1, person.observers.count)
+
+      person.observers.off([:name_has_been_changed])
+
+      assert_equal(0, person.observers.count)
+
+      # --
+
+      person.observers.attach(PersonNamePrinter)
+      person.observers.on(event: :name_has_been_changed, call: PrintPersonName)
+
+      assert_equal(2, person.observers.count)
+
+      person.observers.off([:name_has_been_changed, PersonNamePrinter])
+
+      assert_equal(0, person.observers.count)
+    end
   end
 end

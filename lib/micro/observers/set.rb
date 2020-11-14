@@ -52,6 +52,14 @@ module Micro
         @subscribers.on(options) and self
       end
 
+      def off(*args)
+        @subscribers.off(args) and self
+      end
+
+      def once(options = Utils::EMPTY_HASH)
+        @subscribers.once(options) and self
+      end
+
       def notify(*events, data: nil)
         broadcast_if_subject_changed(Event::Names.fetch(events), data)
       end
@@ -77,8 +85,16 @@ module Micro
       end
 
       # :nodoc:
-      def __each__(&block)
-        @subscribers.relation.each(&block)
+      def __each_with__(event_handler)
+        observers_to_delete = []
+
+        @subscribers.relation.each do |observer|
+          notified = event_handler.call(observer)
+
+          observers_to_delete << observer if notified && observer[3]
+        end
+
+        @subscribers.delete(observers_to_delete)
       end
 
       # :nodoc:

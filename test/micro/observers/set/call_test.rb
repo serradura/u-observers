@@ -177,5 +177,103 @@ module Micro::Observers
         StreamInMemory.history
       )
     end
+
+    def test_the_notification_of_a_subscriber_that_was_attached_using_once_mode
+      observers1 = Set.new('hello')
+      observers1.attach(PrintWord, PrintUpcasedWord, perform_once: true)
+
+      assert_equal(2, observers1.count)
+      assert_predicate(observers1, :some?)
+
+      refute observers1.subject_changed?
+
+      observers1.call!
+
+      assert_equal(0, observers1.count)
+
+      observers1.call!
+
+      refute_predicate(StreamInMemory.history, :empty?)
+
+      assert_equal(
+        ['hello', 'HELLO'],
+        StreamInMemory.history
+      )
+
+      # ---
+
+      observers2 = Set.new('world')
+      observers2.attach([PrintWord, PrintUpcasedWord], perform_once: true)
+
+      assert_equal(2, observers2.count)
+      assert_predicate(observers2, :some?)
+
+      refute observers2.subject_changed?
+
+      observers2.call!
+
+      assert_equal(0, observers2.count)
+
+      observers2.call!
+
+      refute_predicate(StreamInMemory.history, :empty?)
+
+      assert_equal(
+        ['hello', 'HELLO', 'world', 'WORLD'],
+        StreamInMemory.history
+      )
+
+      # ---
+
+      observers3 = Set.new('foo')
+      observers3.attach(PrintWord)
+      observers3.attach(PrintUpcasedWord, perform_once: true)
+
+      assert_equal(2, observers3.count)
+      assert_predicate(observers3, :some?)
+
+      refute observers3.subject_changed?
+
+      observers3.call!
+
+      assert_equal(1, observers3.count)
+
+      observers3.call!
+
+      refute_predicate(StreamInMemory.history, :empty?)
+
+      assert_equal(
+        ['hello', 'HELLO', 'world', 'WORLD', 'foo', 'FOO', 'foo'],
+        StreamInMemory.history
+      )
+
+      # --
+
+      observers4 = Set.new('bar')
+      observers4.attach(PrintWord)
+      observers4.attach(PrintUpcasedWord, perform_once: true)
+
+      assert_equal(2, observers4.count)
+      assert_predicate(observers4, :some?)
+
+      refute observers4.subject_changed?
+
+      observers4.call!(:undefined)
+
+      assert_equal(2, observers4.count)
+
+      observers4.call!(:word_has_been_changed)
+
+      assert_equal(1, observers4.count)
+
+      observers4.call!(:word_has_been_changed)
+
+      refute_predicate(StreamInMemory.history, :empty?)
+
+      assert_equal(
+        ['hello', 'HELLO', 'world', 'WORLD', 'foo', 'FOO', 'foo', 'BAR'],
+        StreamInMemory.history
+      )
+    end
   end
 end
