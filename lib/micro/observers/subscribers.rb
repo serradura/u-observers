@@ -56,6 +56,10 @@ module Micro
         on!(options, once: false)
       end
 
+      def once(options)
+        on!(options, once: true)
+      end
+
       EventNameToCall = -> event_name { -> subscriber { subscriber[0] == :callable && subscriber[1] == event_name } }
 
       def off(args)
@@ -66,16 +70,6 @@ module Micro
             delete_observer(value)
           end
         end
-      end
-
-      def once(options)
-        on!(options, once: true)
-      end
-
-      def delete(observers)
-        return if observers.empty?
-
-        observers.each { |observer| @relation.delete(observer) }
       end
 
       private

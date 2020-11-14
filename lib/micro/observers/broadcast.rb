@@ -6,61 +6,50 @@ module Micro
     module Broadcast
       extend self
 
-      def call(observers, event_names, data, if_subject_changed: false)
-        return call_if_subject_changed(observers, event_names, data) if if_subject_changed
-
-        call!(observers, event_names, data)
+      def call(data, subject, event_names, subscribers)
+        event_names.each(&BroadcastWith[subscribers, subject, data])
       end
 
       private
 
-        def call_if_subject_changed(observers, event_names, data = nil)
-          return unless observers.subject_changed?
+        BroadcastWith = -> (subscribers, subject, data) do
+          -> (event_name) do
+            subscribers_to_delete = []
 
-          call!(observers, event_names, data)
+            subscribers.each do |subscriber|
+              notified = Notify.(subscriber, event_name, subject, data)
 
-          observers.subject_changed(false)
-        end
+              subscribers_to_delete << subscriber if notified && subscriber[3]
+            end
 
-        def call!(observers, event_names, data)
-          return if observers.none?
-
-          subject = observers.__subject__
-
-          event_names.each do |event_name|
-            observers.__each_with__(EventHandler[event_name, subject, data])
+            subscribers_to_delete.each { |subscriber| subscribers.delete(subscriber) }
           end
         end
 
-        EventHandler = -> (event_name, subject, data) do
-          -> (observer_data) do
-            strategy, observer, context = observer_data
-
-            if strategy == :observer && observer.respond_to?(event_name)
-              event = Event.new(event_name, subject, context, data)
-
-              return NotifyObserver.(observer, event)
-            end
-
-            if strategy == :callable && observer == event_name
-              return NotifyCallable.(event_name, subject, context, data)
-            end
-
-            false
-          end
+        Notify = -> (subscriber, event_name, subject, data) do
+          NotifyObserver.(subscriber, event_name, subject, data) ||
+          NotifyCallable.(subscriber, event_name, subject, data) ||
+          false
         end
 
-        NotifyObserver = -> (observer, event) do
+        NotifyObserver = -> (subscriber, event_name, subject, data) do
+          strategy, observer, context = subscriber
+
+          return unless strategy == :observer && observer.respond_to?(event_name)
+
+          event = Event.new(event_name, subject, context, data)
+
           handler = observer.is_a?(Proc) ? observer : observer.method(event.name)
-
-          return handler.call(event.subject) if handler.arity == 1
-
-          handler.call(event.subject, event)
+          handler.arity == 1 ? handler.call(event.subject) : handler.call(event.subject, event)
 
           true
         end
 
-        NotifyCallable = -> (event_name, subject, opt, data) do
+        NotifyCallable = -> (subscriber, event_name, subject, data) do
+          strategy, observer, opt = subscriber
+
+          return unless strategy == :callable && observer == event_name
+
           callable, with, context = opt[0], opt[1], opt[2]
 
           return callable.call(with) if with && !with.is_a?(Proc)
@@ -71,8 +60,6 @@ module Micro
 
           true
         end
-
-      private_constant :EventHandler, :NotifyObserver, :NotifyCallable
     end
 
     private_constant :Broadcast
