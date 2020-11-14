@@ -98,5 +98,6 @@ module Micro
       private_constant :GetObserver, :MapObserver, :MapObserverWithoutContext
     end
 
+    private_constant :Subscribers
   end
 end

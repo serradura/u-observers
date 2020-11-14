@@ -75,5 +75,6 @@ module Micro
       private_constant :EventHandler, :NotifyObserver, :NotifyCallable
     end
 
+    private_constant :Broadcast
   end
 end
