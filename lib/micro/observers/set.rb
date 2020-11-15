@@ -70,7 +70,7 @@ module Micro
       def inspect
         subs = @subscribers.to_inspect
 
-        '<#%s @subject=%s @subject_changed=%p @subscribers=%p>' % [self.class, @subject, @subject_changed, subs]
+        '#<%s @subject=%s @subject_changed=%p @subscribers=%p>' % [self.class, @subject, @subject_changed, subs]
       end
 
       private
