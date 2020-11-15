@@ -7,13 +7,16 @@ module Micro
       EqualTo = -> (observer) { -> subscriber { GetObserver[subscriber] == observer } }
       GetObserver = -> subscriber { subscriber[0] == :observer ? subscriber[1] : subscriber[2][0] }
       MapObserver = -> (observer, options, once) { [:observer, observer, options[:context], once] }
-      MapObserverWithoutContext = -> observer { MapObserver[observer, Utils::EMPTY_HASH, false] }
+      MapObserversToInitialize = -> arg do
+        Utils::Arrays.flatten_and_compact(arg).map do |observer|
+          MapObserver[observer, Utils::EMPTY_HASH, false]
+        end
+      end
 
       attr_reader :relation
 
       def initialize(arg)
-        array = Utils::Arrays.flatten_and_compact(arg.kind_of?(Array) ? arg : [])
-        @relation = array.map(&MapObserverWithoutContext)
+        @relation = arg.is_a?(Array) ? MapObserversToInitialize[arg] : []
       end
 
       def to_inspect
@@ -37,7 +40,7 @@ module Micro
 
         once = options.frozen? ? false : options.delete(:perform_once)
 
-        Utils::Arrays.flatten_and_compact(args).each do |observer|
+        Utils::Arrays.fetch_from_args(args).each do |observer|
           @relation << MapObserver[observer, options, once] unless include?(observer)
         end
 
@@ -45,7 +48,7 @@ module Micro
       end
 
       def detach(args)
-        Utils::Arrays.flatten_and_compact(args).each do |observer|
+        Utils::Arrays.fetch_from_args(args).each do |observer|
           delete_observer(observer)
         end
 
@@ -63,7 +66,7 @@ module Micro
       EventNameToCall = -> event_name { -> subscriber { subscriber[0] == :callable && subscriber[1] == event_name } }
 
       def off(args)
-        Utils::Arrays.flatten_and_compact(args).each do |value|
+        Utils::Arrays.fetch_from_args(args).each do |value|
           if value.is_a?(Symbol)
             @relation.delete_if(&EventNameToCall[value])
           else
@@ -89,7 +92,7 @@ module Micro
         end
 
       private_constant :EqualTo, :EventNameToCall
-      private_constant :GetObserver, :MapObserver, :MapObserverWithoutContext
+      private_constant :GetObserver, :MapObserver, :MapObserversToInitialize
     end
 
     private_constant :Subscribers

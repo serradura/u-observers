@@ -11,7 +11,6 @@ module Micro
       def initialize(subject, subscribers: nil)
         @subject = subject
         @subject_changed = false
-
         @subscribers = Subscribers.new(subscribers)
       end
 
