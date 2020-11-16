@@ -13,26 +13,26 @@ module Micro
         end
       end
 
-      attr_reader :relation
+      attr_reader :list
 
       def initialize(arg)
-        @relation = arg.is_a?(Array) ? MapObserversToInitialize[arg] : []
+        @list = arg.is_a?(Array) ? MapObserversToInitialize[arg] : []
       end
 
       def to_inspect
-        none? ? @relation : @relation.map(&GetObserver)
+        none? ? @list : @list.map(&GetObserver)
       end
 
       def count
-        @relation.size
+        @list.size
       end
 
       def none?
-        @relation.empty?
+        @list.empty?
       end
 
       def include?(subscriber)
-        @relation.any?(&EqualTo[subscriber])
+        @list.any?(&EqualTo[subscriber])
       end
 
       def attach(args)
@@ -41,7 +41,7 @@ module Micro
         once = options.frozen? ? false : options.delete(:perform_once)
 
         Utils::Arrays.fetch_from_args(args).each do |observer|
-          @relation << MapObserver[observer, options, once] unless include?(observer)
+          @list << MapObserver[observer, options, once] unless include?(observer)
         end
 
         true
@@ -68,7 +68,7 @@ module Micro
       def off(args)
         Utils::Arrays.fetch_from_args(args).each do |value|
           if value.is_a?(Symbol)
-            @relation.delete_if(&EventNameToCall[value])
+            @list.delete_if(&EventNameToCall[value])
           else
             delete_observer(value)
           end
@@ -78,7 +78,7 @@ module Micro
       private
 
         def delete_observer(observer)
-          @relation.delete_if(&EqualTo[observer])
+          @list.delete_if(&EqualTo[observer])
         end
 
         def on!(options, once:)
@@ -86,7 +86,7 @@ module Micro
 
           return true unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-          @relation << [:callable, event, [callable, with, context], once] unless include?(callable)
+          @list << [:callable, event, [callable, with, context], once] unless include?(callable)
 
           true
         end

@@ -88,7 +88,7 @@ module Micro
         def broadcast(event_names, data)
           return self if none?
 
-          Broadcast.call(data, @subject, event_names, @subscribers.relation)
+          Broadcast.call(@subscribers, @subject, data, event_names)
 
           self
         end
