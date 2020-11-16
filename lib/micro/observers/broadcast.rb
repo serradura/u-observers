@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'set'
+
 module Micro
   module Observers
 
@@ -7,22 +9,22 @@ module Micro
       extend self
 
       def call(data, subject, event_names, subscribers)
-        event_names.each(&BroadcastWith[subscribers, subject, data])
+        sweep_marker = ::Set.new
+
+        event_names.each(&BroadcastWith[subscribers, subject, data, sweep_marker])
+
+        sweep_marker.each { |subscriber| subscribers.delete(subscriber) }
       end
 
       private
 
-        BroadcastWith = -> (subscribers, subject, data) do
+        BroadcastWith = -> (subscribers, subject, data, sweep_marker) do
           -> (event_name) do
-            subscribers_to_delete = []
-
             subscribers.each do |subscriber|
               notified = Notify.(subscriber, event_name, subject, data)
 
-              subscribers_to_delete << subscriber if notified && subscriber[3]
+              sweep_marker << subscriber if notified && subscriber[3]
             end
-
-            subscribers_to_delete.each { |subscriber| subscribers.delete(subscriber) }
           end
         end
 

@@ -200,5 +200,50 @@ module Micro::Observers
       observers.notify(:something_happened)
       observers.notify!(:something_happened)
     end
+
+    module NotificationsForStatusChanging
+      def self.canceled(subj)
+        StreamInMemory.puts("Object #{subj.object_id} has been canceled")
+      end
+
+      def self.status_changed(subj)
+        StreamInMemory.puts("Object #{subj.object_id} has its status changed")
+      end
+    end
+
+    def test_subscriber_that_was_attached_using_once_mode
+      object = Object.new
+
+      register_status_changing = -> _evt { StreamInMemory.puts("121211") }
+      register_cancelation = -> _evt { StreamInMemory.puts("121212") }
+
+      observers1 = Set.new(object)
+      observers1.attach(NotificationsForStatusChanging, perform_once: true)
+      observers1.once(event: :canceled, call: register_cancelation)
+      observers1.once(event: :status_changed, call: register_status_changing)
+
+      assert_equal(3, observers1.count)
+      assert_predicate(observers1, :some?)
+
+      refute observers1.subject_changed?
+
+      observers1.notify!(:status_changed, :canceled)
+
+      assert_equal(0, observers1.count)
+
+      observers1.notify!(:status_changed, :canceled)
+
+      refute_predicate(StreamInMemory.history, :empty?)
+
+      assert_equal(
+        [
+          "Object #{object.object_id} has its status changed",
+          '121211',
+          "Object #{object.object_id} has been canceled",
+          '121212',
+        ],
+        StreamInMemory.history
+      )
+    end
   end
 end
