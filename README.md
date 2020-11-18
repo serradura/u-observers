@@ -42,7 +42,7 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
     - [Using a callable as an observer](#using-a-callable-as-an-observer)
     - [Calling the observers](#calling-the-observers)
     - [Notifying observers without marking them as changed](#notifying-observers-without-marking-them-as-changed)
-    - [Perform observers only once](#perform-observers-only-once)
+    - [Defining observers that execute only once](#defining-observers-that-execute-only-once)
       - [`observers.attach(*args, perform_once: true)`](#observersattachargs-perform_once-true)
       - [`observers.once(event:, call:, ...)`](#observersonceevent-call-)
     - [Detaching observers](#detaching-observers)
@@ -311,7 +311,7 @@ If you use the methods `#notify!` or `#call!` you won't need to mark observers w
 
 [⬆️ &nbsp; Back to Top](#table-of-contents-)
 
-### Perform observers only once
+### Defining observers that execute only once
 
 There are two ways to attach an observer and define it to be performed only once.
 
@@ -346,7 +346,7 @@ order.cancel!         # Nothing will happen because there aren't observers.
 
 #### `observers.once(event:, call:, ...)`
 
-The second way to achieve this is using `observers.once()` that has the same API of [`observers.on()`](#using-a-callable-as-an-observer). But, it will remove the observer after its execution.
+The second way to achieve this is using `observers.once()` that has the same API of [`observers.on()`](#using-a-callable-as-an-observer). But the difference of the `#once()` method is that it will remove the observer after its execution.
 
 ```ruby
 class Order
