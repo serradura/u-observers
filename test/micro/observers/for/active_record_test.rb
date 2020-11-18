@@ -3,7 +3,7 @@ require 'test_helper'
 if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
   class Micro::Observers::For::ActiveRecordTest < Minitest::Test
     def setup
-      MemoryOutput.history.clear
+      MemoryOutput.clear
     end
 
     class Book < ActiveRecord::Base

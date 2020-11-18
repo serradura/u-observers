@@ -19,7 +19,7 @@ module Micro::Observers
     end
 
     def setup
-      MemoryOutput.history.clear
+      MemoryOutput.clear
     end
 
     def test_that_you_can_add_multiple_callables_to_the_same_event_using_the_on_method

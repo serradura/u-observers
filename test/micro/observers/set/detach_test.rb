@@ -3,7 +3,7 @@ require 'test_helper'
 module Micro::Observers
   class SetDetachTest < Minitest::Test
     def setup
-      MemoryOutput.history.clear
+      MemoryOutput.clear
     end
 
     class Person

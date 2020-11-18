@@ -3,7 +3,7 @@ require 'test_helper'
 
 class Micro::ObserversTest < Minitest::Test
   def setup
-    MemoryOutput.history.clear
+    MemoryOutput.clear
   end
 
   if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'

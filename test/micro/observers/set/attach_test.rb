@@ -108,7 +108,7 @@ module Micro::Observers
     end
 
     def test_the_attaching_using_once
-      MemoryOutput.history.clear
+      MemoryOutput.clear
 
       person = Person.new(name: 'Rodrigo')
 

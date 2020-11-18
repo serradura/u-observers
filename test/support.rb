@@ -24,9 +24,10 @@ require 'singleton'
 class MemoryOutput
   include Singleton
 
-  def self.history; instance.history; end
-  def self.size; instance.history.size; end
   def self.puts(value); instance.puts(value); end
+  def self.size; instance.history.size; end
+  def self.clear; instance.history.clear; end
+  def self.history; instance.history; end
 
   attr_reader :history
 
