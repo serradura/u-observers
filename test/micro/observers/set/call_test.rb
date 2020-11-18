@@ -3,18 +3,18 @@ require 'test_helper'
 module Micro::Observers
   class SetCallTest < Minitest::Test
     def setup
-      StreamInMemory.history.clear
+      MemoryOutput.history.clear
     end
 
     module PrintWord
       def self.call(word)
-        StreamInMemory.puts(word)
+        MemoryOutput.puts(word)
       end
     end
 
     module PrintUpcasedWord
       def self.call(word)
-        StreamInMemory.puts(word.upcase)
+        MemoryOutput.puts(word.upcase)
       end
 
       singleton_class.send(:alias_method, :word_has_been_changed, :call)
@@ -35,7 +35,7 @@ module Micro::Observers
       observers.call
       observers.call(:word_has_been_changed)
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -50,7 +50,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_equal(['world', 'WORLD'], StreamInMemory.history)
+      assert_equal(['world', 'WORLD'], MemoryOutput.history)
 
       # --
 
@@ -63,7 +63,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_equal(['world', 'WORLD', 'WORLD'], StreamInMemory.history)
+      assert_equal(['world', 'WORLD', 'WORLD'], MemoryOutput.history)
     end
 
     def test_the_idempotency_with_multiple_notifications
@@ -81,7 +81,7 @@ module Micro::Observers
       observers.call
       observers.call(:word_has_been_changed)
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -96,7 +96,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_equal(['world', 'WORLD', 'WORLD'], StreamInMemory.history)
+      assert_equal(['world', 'WORLD', 'WORLD'], MemoryOutput.history)
 
       # --
 
@@ -111,7 +111,7 @@ module Micro::Observers
 
       assert_equal(
         ['world', 'WORLD', 'WORLD', 'WORLD', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -131,7 +131,7 @@ module Micro::Observers
 
       observers.call!(:word_has_been_changed)
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -144,7 +144,7 @@ module Micro::Observers
 
       assert_equal(
         ['world', 'HELLO', 'HELLO', 'WORLD', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -162,7 +162,7 @@ module Micro::Observers
 
       observers.call!(:call, :word_has_been_changed)
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -174,7 +174,7 @@ module Micro::Observers
 
       assert_equal(
         ['world', 'HELLO', 'HELLO', 'WORLD', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -193,11 +193,11 @@ module Micro::Observers
 
       observers1.call!
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       assert_equal(
         ['hello', 'HELLO'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
 
       # ---
@@ -216,11 +216,11 @@ module Micro::Observers
 
       observers2.call!
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       assert_equal(
         ['hello', 'HELLO', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
 
       # ---
@@ -240,11 +240,11 @@ module Micro::Observers
 
       observers3.call!
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       assert_equal(
         ['hello', 'HELLO', 'world', 'WORLD', 'foo', 'FOO', 'foo'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
 
       # --
@@ -268,11 +268,11 @@ module Micro::Observers
 
       observers4.call!(:word_has_been_changed)
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       assert_equal(
         ['hello', 'HELLO', 'world', 'WORLD', 'foo', 'FOO', 'foo', 'BAR'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
   end

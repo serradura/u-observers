@@ -19,12 +19,12 @@ module Micro::Observers
     end
 
     PrintPersonName = -> (event) do
-      StreamInMemory.puts("Person name: #{event.subject.name}")
+      MemoryOutput.puts("Person name: #{event.subject.name}")
     end
 
     module PersonNamePrinter
       def self.name_has_been_changed(person)
-        StreamInMemory.puts("Person name: #{person.name}")
+        MemoryOutput.puts("Person name: #{person.name}")
       end
     end
 
@@ -108,7 +108,7 @@ module Micro::Observers
     end
 
     def test_the_attaching_using_once
-      StreamInMemory.history.clear
+      MemoryOutput.history.clear
 
       person = Person.new(name: 'Rodrigo')
 
@@ -122,15 +122,15 @@ module Micro::Observers
 
       refute person.observers.subject_changed?
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
 
       person.name = 'Serradura'
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       assert_equal(
         ['Person name: Serradura'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
 
       assert_equal(0, person.observers.count)

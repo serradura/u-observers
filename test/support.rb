@@ -21,7 +21,7 @@ end
 
 require 'singleton'
 
-class StreamInMemory
+class MemoryOutput
   include Singleton
 
   def self.history; instance.history; end

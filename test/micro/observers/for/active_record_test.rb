@@ -3,7 +3,7 @@ require 'test_helper'
 if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
   class Micro::Observers::For::ActiveRecordTest < Minitest::Test
     def setup
-      StreamInMemory.history.clear
+      MemoryOutput.history.clear
     end
 
     class Book < ActiveRecord::Base
@@ -14,7 +14,7 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
 
     module LogTheBookCreation
       def self.after_commit(book)
-        StreamInMemory.puts("The book was successfully created! Title: #{book.title}")
+        MemoryOutput.puts("The book was successfully created! Title: #{book.title}")
       end
     end
 
@@ -27,7 +27,7 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
 
       assert_equal(
         ['The book was successfully created! Title: Observers'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -39,13 +39,13 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
 
     module TitlePrinter
       def self.after_commit(post)
-        StreamInMemory.puts("Title: #{post.title}")
+        MemoryOutput.puts("Title: #{post.title}")
       end
     end
 
     module TitlePrinterWithContext
       def self.after_commit(post, event)
-        StreamInMemory.puts("Title: #{post.title}, from: #{event.context[:from]}")
+        MemoryOutput.puts("Title: #{post.title}, from: #{event.context[:from]}")
       end
     end
 
@@ -60,7 +60,7 @@ if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
         [
           'Title: Hello world',
           'Title: Hello world, from: Test 1'
-        ], StreamInMemory.history
+        ], MemoryOutput.history
       )
     end
   end
