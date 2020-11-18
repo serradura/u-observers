@@ -86,12 +86,22 @@ module Micro
 
           return true unless event.is_a?(Symbol) && callable.respond_to?(:call)
 
-          @list << [:callable, event, [callable, with, context], once] unless include?(callable)
+          observer = [callable, with, context]
+
+          @list << [:callable, event, observer, once] unless include_callable?(event, observer)
 
           true
         end
 
-      private_constant :EqualTo, :EventNameToCall
+        CallableHaving = -> (event, observer) do
+          -> subs { subs[0] == :callable && subs[1] == event && subs[2] == observer }
+        end
+
+        def include_callable?(event, observer)
+          @list.any?(&CallableHaving[event, observer])
+        end
+
+      private_constant :EqualTo, :EventNameToCall, :CallableHaving
       private_constant :GetObserver, :MapObserver, :MapObserversToInitialize
     end
 
