@@ -66,7 +66,7 @@ gem 'u-observers'
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
 | unreleased  | main    | >= 2.2.0 | >= 3.2, < 6.1 |
-| 2.1.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.2.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 | 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Nota**: O ActiveRecord não é uma dependência, mas você pode adicionar um módulo para habilitar alguns métodos estáticos que foram projetados para serem usados ​​com seus [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
