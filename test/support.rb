@@ -25,6 +25,7 @@ class MemoryOutput
   include Singleton
 
   def self.history; instance.history; end
+  def self.size; instance.history.size; end
   def self.puts(value); instance.puts(value); end
 
   attr_reader :history
@@ -35,5 +36,7 @@ class MemoryOutput
 
   def puts(value)
     @history << value
+
+    nil
   end
 end
