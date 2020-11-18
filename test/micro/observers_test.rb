@@ -3,7 +3,7 @@ require 'test_helper'
 
 class Micro::ObserversTest < Minitest::Test
   def setup
-    StreamInMemory.history.clear
+    MemoryOutput.history.clear
   end
 
   if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
@@ -15,7 +15,7 @@ class Micro::ObserversTest < Minitest::Test
 
     module LogTheBookCreation
       def self.transaction_completed(book)
-        StreamInMemory.puts("The book was successfully created! Title: #{book.title}")
+        MemoryOutput.puts("The book was successfully created! Title: #{book.title}")
       end
     end
 
@@ -28,7 +28,7 @@ class Micro::ObserversTest < Minitest::Test
 
       assert_equal(
         ['The book was successfully created! Title: Observers'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -40,13 +40,13 @@ class Micro::ObserversTest < Minitest::Test
 
     module TitlePrinter
       def self.record_has_been_persisted(post)
-        StreamInMemory.puts("Title: #{post.title}")
+        MemoryOutput.puts("Title: #{post.title}")
       end
     end
 
     module TitlePrinterWithContext
       def self.record_has_been_persisted(post, event)
-        StreamInMemory.puts("Title: #{post.title}, from: #{event.ctx[:from]}")
+        MemoryOutput.puts("Title: #{post.title}, from: #{event.ctx[:from]}")
       end
     end
 
@@ -61,7 +61,7 @@ class Micro::ObserversTest < Minitest::Test
         [
           'Title: Hello world',
           'Title: Hello world, from: Test 1'
-        ], StreamInMemory.history
+        ], MemoryOutput.history
       )
     end
   end
@@ -85,7 +85,7 @@ class Micro::ObserversTest < Minitest::Test
   end
 
   PrintPersonName = -> (data) do
-    StreamInMemory.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
+    MemoryOutput.puts("Person name: #{data.fetch(:person).name}, number: #{data.fetch(:number)}")
   end
 
   def test_a_callable_observer_without_providing_a_context
@@ -100,7 +100,7 @@ class Micro::ObserversTest < Minitest::Test
 
     person.name = 'Serradura'
 
-    assert_equal(["Person name: Serradura, number: #{rand_number}"], StreamInMemory.history)
+    assert_equal(["Person name: Serradura, number: #{rand_number}"], MemoryOutput.history)
   end
 
   def test_a_callable_observer_with_a_context
@@ -116,6 +116,6 @@ class Micro::ObserversTest < Minitest::Test
 
     person.name = 'Serradura'
 
-    assert_equal(["Person name: Serradura, number: #{rand_number}"], StreamInMemory.history)
+    assert_equal(["Person name: Serradura, number: #{rand_number}"], MemoryOutput.history)
   end
 end

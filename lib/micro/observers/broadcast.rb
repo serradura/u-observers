@@ -56,7 +56,11 @@ module Micro
 
           callable, with, context = options[0], options[1], options[2]
 
-          return callable.call(with) if with && !with.is_a?(Proc)
+          if with && !with.is_a?(Proc)
+            callable.call(with)
+
+            return true
+          end
 
           event = Event.new(event_name, subject, context, data)
 

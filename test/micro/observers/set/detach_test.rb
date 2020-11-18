@@ -3,7 +3,7 @@ require 'test_helper'
 module Micro::Observers
   class SetDetachTest < Minitest::Test
     def setup
-      StreamInMemory.history.clear
+      MemoryOutput.history.clear
     end
 
     class Person
@@ -23,7 +23,7 @@ module Micro::Observers
     end
 
     PrintPersonName = -> (person) do
-      StreamInMemory.puts("Person name: #{person.name}}")
+      MemoryOutput.puts("Person name: #{person.name}}")
     end
 
     module PersonNamePrinter
@@ -52,7 +52,7 @@ module Micro::Observers
 
       person.name = 'Serradura'
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
     end
 
     def test_the_detaching_of_multiples_observers
@@ -70,7 +70,7 @@ module Micro::Observers
 
       person.name = 'Serradura'
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
     end
 
     def test_the_detaching_using_off

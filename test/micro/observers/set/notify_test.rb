@@ -3,18 +3,18 @@ require 'test_helper'
 module Micro::Observers
   class SetNotifyTest < Minitest::Test
     def setup
-      StreamInMemory.history.clear
+      MemoryOutput.history.clear
     end
 
     module PrintWord
       def self.call(word)
-        StreamInMemory.puts(word)
+        MemoryOutput.puts(word)
       end
     end
 
     module PrintUpcasedWord
       def self.call(word)
-        StreamInMemory.puts(word.upcase)
+        MemoryOutput.puts(word.upcase)
       end
 
       singleton_class.send(:alias_method, :word_has_been_changed, :call)
@@ -35,7 +35,7 @@ module Micro::Observers
       observers.notify(:call)
       observers.notify(:word_has_been_changed)
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -50,7 +50,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_equal(['world', 'WORLD'], StreamInMemory.history)
+      assert_equal(['world', 'WORLD'], MemoryOutput.history)
 
       # --
 
@@ -63,7 +63,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_equal(['world', 'WORLD', 'WORLD'], StreamInMemory.history)
+      assert_equal(['world', 'WORLD', 'WORLD'], MemoryOutput.history)
     end
 
     def test_the_idempotency_with_multiple_notifications
@@ -81,7 +81,7 @@ module Micro::Observers
       observers.notify(:call)
       observers.notify(:word_has_been_changed)
 
-      assert_predicate(StreamInMemory.history, :empty?)
+      assert_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -96,7 +96,7 @@ module Micro::Observers
 
       refute observers.subject_changed?
 
-      assert_equal(['world', 'WORLD', 'WORLD'], StreamInMemory.history)
+      assert_equal(['world', 'WORLD', 'WORLD'], MemoryOutput.history)
 
       # --
 
@@ -111,7 +111,7 @@ module Micro::Observers
 
       assert_equal(
         ['world', 'WORLD', 'WORLD', 'WORLD', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -131,7 +131,7 @@ module Micro::Observers
 
       observers.notify!(:word_has_been_changed)
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -144,7 +144,7 @@ module Micro::Observers
 
       assert_equal(
         ['world', 'HELLO', 'HELLO', 'WORLD', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -162,7 +162,7 @@ module Micro::Observers
 
       observers.notify!(:call, :word_has_been_changed)
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       word.replace('world')
 
@@ -174,7 +174,7 @@ module Micro::Observers
 
       assert_equal(
         ['world', 'HELLO', 'HELLO', 'WORLD', 'world', 'WORLD'],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
 
@@ -203,19 +203,19 @@ module Micro::Observers
 
     module NotificationsForStatusChanging
       def self.canceled(subj)
-        StreamInMemory.puts("Object #{subj.object_id} has been canceled")
+        MemoryOutput.puts("Object #{subj.object_id} has been canceled")
       end
 
       def self.status_changed(subj)
-        StreamInMemory.puts("Object #{subj.object_id} has its status changed")
+        MemoryOutput.puts("Object #{subj.object_id} has its status changed")
       end
     end
 
     def test_subscriber_that_was_attached_using_once_mode
       object = Object.new
 
-      register_status_changing = -> _evt { StreamInMemory.puts("121211") }
-      register_cancelation = -> _evt { StreamInMemory.puts("121212") }
+      register_status_changing = -> _evt { MemoryOutput.puts("121211") }
+      register_cancelation = -> _evt { MemoryOutput.puts("121212") }
 
       observers1 = Set.new(object)
       observers1.attach(NotificationsForStatusChanging, perform_once: true)
@@ -233,7 +233,7 @@ module Micro::Observers
 
       observers1.notify!(:status_changed, :canceled)
 
-      refute_predicate(StreamInMemory.history, :empty?)
+      refute_predicate(MemoryOutput.history, :empty?)
 
       assert_equal(
         [
@@ -242,7 +242,7 @@ module Micro::Observers
           "Object #{object.object_id} has been canceled",
           '121212',
         ],
-        StreamInMemory.history
+        MemoryOutput.history
       )
     end
   end

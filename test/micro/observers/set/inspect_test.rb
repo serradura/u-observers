@@ -2,11 +2,11 @@ require 'test_helper'
 
 module Micro::Observers
   class SetInspectTest < Minitest::Test
-    PrintWord = -> word { StreamInMemory.puts(word) }
+    PrintWord = -> word { MemoryOutput.puts(word) }
 
     module PrintUpcasedWord
       def self.call(word)
-        StreamInMemory.puts(word.upcase)
+        MemoryOutput.puts(word.upcase)
       end
     end
 
