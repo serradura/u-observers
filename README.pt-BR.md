@@ -41,6 +41,10 @@ Por causa desse problema, decidi criar uma gem que encapsula o padrão sem alter
     - [Usando um callable como um observador](#usando-um-callable-como-um-observador)
     - [Chamando os observadores](#chamando-os-observadores)
     - [Notificar observadores sem marcá-los como alterados](#notificar-observadores-sem-marcá-los-como-alterados)
+    - [Definindo observers que executam apenas uma vez](#definindo-observers-que-executam-apenas-uma-vez)
+      - [`observers.attach(*args, perform_once: true)`](#observersattachargs-perform_once-true)
+      - [`observers.once(event:, call:, ...)`](#observersonceevent-call-)
+    - [Desanexando observers](#desanexando-observers)
     - [Integrações ActiveRecord e ActiveModel](#integrações-activerecord-e-activemodel)
       - [notify_observers_on()](#notify_observers_on)
       - [notify_observers()](#notify_observers)
@@ -306,6 +310,106 @@ Este recurso deve ser usado com cuidado!
 Se você usar os métodos `#notify!` ou `#call!` você não precisará marcar observers com `#subject_changed`.
 
 [⬆️ Voltar para o índice](#índice-)
+
+### Definindo observers que executam apenas uma vez
+
+Existem duas formas de anexar um observer e definir que ele executará apenas uma vez.
+
+A primeira forma de fazer isso é passando a opção `perform_once: true` para o método `observers.attach()`. Exemplo:
+
+#### `observers.attach(*args, perform_once: true)`
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+module OrderNotifications
+  def self.canceled(order)
+    puts "The order #(#{order.object_id}) has been canceled."
+  end
+end
+
+order = Order.new
+order.observers.attach(OrderNotifications, perform_once: true) # you can also pass an array of observers with this option
+
+order.observers.some? # true
+order.cancel!         # The order #(70291642071660) has been canceled.
+
+order.observers.some? # false
+order.cancel!         # Nothing will happen because there aren't observers.
+```
+
+#### `observers.once(event:, call:, ...)`
+
+A segunda forma de conseguir isso é usando o método `observers.once()` que tem a mesma API do [`observers.on()`](#usando-um-callable-como-um-observador). Mas a diferença é que o método `#once()` removerá o observer após a sua execução.
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+module NotifyAfterCancel
+  def self.call(event)
+    puts "The order #(#{event.subject.object_id}) has been canceled."
+  end
+end
+
+order = Order.new
+order.observers.once(event: :canceled, call: NotifyAfterCancel)
+
+order.observers.some? # true
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # false
+order.cancel!         # Nothing will happen because there aren't observers.
+```
+
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
+
+### Desanexando observers
+
+Como mostrado no primeiro exemplo, você pode usar o `observers.detach()` para remove observers.
+
+Mas, existe uma alternativa a esse método que permite remover objetos observers ou remover callables pelo nome de seus eventos. O método para fazer isso é: `observers.off()`.
+
+```ruby
+class Order
+  include Micro::Observers
+end
+
+NotifyAfterCancel = -> {}
+
+module OrderNotifications
+  def self.canceled(_order)
+  end
+end
+
+order = Order.new
+order.observers.on(event: :canceled, call: NotifyAfterCancel)
+order.observers.attach(OrderNotifications)
+
+order.observers.some? # true
+order.observers.count # 2
+
+order.observers.off(:canceled) # removing the callable (NotifyAfterCancel).
+order.observers.some? # true
+order.observers.count # 1
+
+order.observers.off(OrderNotifications)
+order.observers.some? # false
+order.observers.count # 0
+```
+
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
 
 ### Integrações ActiveRecord e ActiveModel
 

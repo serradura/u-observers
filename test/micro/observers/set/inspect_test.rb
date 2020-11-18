@@ -14,7 +14,7 @@ module Micro::Observers
       observers = Set.new('hello', subscribers: [PrintWord, PrintUpcasedWord])
 
       assert_match(
-        /<#Micro::Observers::Set @subject=hello @subject_changed=false @subscribers=\[#<Proc:0x.+\/.+\/inspect_test.rb:5 \(lambda\)>, .+PrintUpcasedWord\]>/,
+        /#<Micro::Observers::Set @subject=hello @subject_changed=false @subscribers=\[#<Proc:0x.+\/.+\/inspect_test.rb:5 \(lambda\)>, .+PrintUpcasedWord\]>/,
         observers.inspect
       )
     end
@@ -23,7 +23,7 @@ module Micro::Observers
       observers = Set.new('hello')
 
       assert_match(
-        /<#Micro::Observers::Set @subject=hello @subject_changed=false @subscribers=\[\]>/,
+        /#<Micro::Observers::Set @subject=hello @subject_changed=false @subscribers=\[\]>/,
         observers.inspect
       )
     end

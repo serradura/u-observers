@@ -1,73 +1,73 @@
 # frozen_string_literal: true
 
+require 'set'
+
 module Micro
   module Observers
 
     module Broadcast
       extend self
 
-      def call(observers, event_names, data, if_subject_changed: false)
-        return call_if_subject_changed(observers, event_names, data) if if_subject_changed
+      def call(subscribers, subject, data, event_names)
+        subscribers_list = subscribers.list
+        subscribers_to_be_deleted = ::Set.new
 
-        call!(observers, event_names, data)
+        event_names.each(&BroadcastWith[subscribers_list, subject, data, subscribers_to_be_deleted])
+
+        subscribers_to_be_deleted.each { |subscriber| subscribers_list.delete(subscriber) }
       end
 
       private
 
-        def call_if_subject_changed(observers, event_names, data = nil)
-          return unless observers.subject_changed?
+        BroadcastWith = -> (subscribers, subject, data, subscribers_to_be_deleted) do
+          -> (event_name) do
+            subscribers.each do |subscriber|
+              notified = NotifySubscriber.(subscriber, subject, data, event_name)
+              perform_once = subscriber[3]
 
-          call!(observers, event_names, data)
-
-          observers.subject_changed(false)
-        end
-
-        def call!(observers, event_names, data)
-          return if observers.none?
-
-          subject = observers.__subject__
-
-          event_names.each do |event_name|
-            observers.__each__(&NotifyWith[event_name, subject, data])
-          end
-        end
-
-        NotifyWith = -> (event_name, subject, data) do
-          -> observer_data do
-            strategy, observer, context = observer_data
-
-            if strategy == :observer && observer.respond_to?(event_name)
-              event = Event.new(event_name, subject, context, data)
-
-              return NotifyHandler.(observer, event)
-            end
-
-            if strategy == :callable && observer == event_name
-              return NotifyCallable.(event_name, subject, context, data)
+              subscribers_to_be_deleted.add(subscriber) if notified && perform_once
             end
           end
         end
 
-        NotifyHandler = -> (observer, event) do
+        NotifySubscriber = -> (subscriber, subject, data, event_name) do
+          NotifyObserver.(subscriber, subject, data, event_name) ||
+          NotifyCallable.(subscriber, subject, data, event_name) ||
+          false
+        end
+
+        NotifyObserver = -> (subscriber, subject, data, event_name) do
+          strategy, observer, context = subscriber
+
+          return unless strategy == :observer && observer.respond_to?(event_name)
+
+          event = Event.new(event_name, subject, context, data)
+
           handler = observer.is_a?(Proc) ? observer : observer.method(event.name)
+          handler.arity == 1 ? handler.call(event.subject) : handler.call(event.subject, event)
 
-          return handler.call(event.subject) if handler.arity == 1
-
-          handler.call(event.subject, event)
+          true
         end
 
-        NotifyCallable = -> (event_name, subject, opt, data) do
-          callable, with, context = opt[0], opt[1], opt[2]
+        NotifyCallable = -> (subscriber, subject, data, event_name) do
+          strategy, observer, options = subscriber
+
+          return unless strategy == :callable && observer == event_name
+
+          callable, with, context = options[0], options[1], options[2]
 
           return callable.call(with) if with && !with.is_a?(Proc)
 
           event = Event.new(event_name, subject, context, data)
 
           callable.call(with.is_a?(Proc) ? with.call(event) : event)
+
+          true
         end
 
-      private_constant :NotifyWith, :NotifyHandler, :NotifyCallable
+      private_constant :BroadcastWith, :NotifySubscriber, :NotifyCallable, :NotifyObserver
     end
 
+    private_constant :Broadcast
   end
 end

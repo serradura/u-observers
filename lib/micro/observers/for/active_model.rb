@@ -18,7 +18,7 @@ module Micro
           end
 
           def notify_observers_on(*callback_methods)
-            Utils::Arrays.flatten_and_compact(callback_methods).each do |callback_method|
+            Utils::Arrays.fetch_from_args(callback_methods).each do |callback_method|
               self.public_send(callback_method, &notify_observers!([callback_method]))
             end
           end

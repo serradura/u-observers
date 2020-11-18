@@ -6,62 +6,95 @@ module Micro
     class Subscribers
       EqualTo = -> (observer) { -> subscriber { GetObserver[subscriber] == observer } }
       GetObserver = -> subscriber { subscriber[0] == :observer ? subscriber[1] : subscriber[2][0] }
-      MapObserver = -> (observer, options) { [:observer, observer, options[:context]] }
-      MapObserverWithoutContext = -> observer { MapObserver[observer, Utils::EMPTY_HASH] }
+      MapObserver = -> (observer, options, once) { [:observer, observer, options[:context], once] }
+      MapObserversToInitialize = -> arg do
+        Utils::Arrays.flatten_and_compact(arg).map do |observer|
+          MapObserver[observer, Utils::EMPTY_HASH, false]
+        end
+      end
 
-      attr_reader :relation
+      attr_reader :list
 
       def initialize(arg)
-        array = Utils::Arrays.flatten_and_compact(arg.kind_of?(Array) ? arg : [])
-        @relation = array.map(&MapObserverWithoutContext)
+        @list = arg.is_a?(Array) ? MapObserversToInitialize[arg] : []
+      end
+
+      def to_inspect
+        none? ? @list : @list.map(&GetObserver)
       end
 
       def count
-        @relation.size
+        @list.size
       end
 
       def none?
-        @relation.empty?
+        @list.empty?
       end
 
       def include?(subscriber)
-        @relation.any?(&EqualTo[subscriber])
+        @list.any?(&EqualTo[subscriber])
       end
 
       def attach(args)
         options = args.last.is_a?(Hash) ? args.pop : Utils::EMPTY_HASH
 
-        Utils::Arrays.flatten_and_compact(args).each do |observer|
-          @relation << MapObserver[observer, options] unless include?(observer)
+        once = options.frozen? ? false : options.delete(:perform_once)
+
+        Utils::Arrays.fetch_from_args(args).each do |observer|
+          @list << MapObserver[observer, options, once] unless include?(observer)
         end
 
         true
       end
 
       def detach(args)
-        Utils::Arrays.flatten_and_compact(args).each do |observer|
-          @relation.delete_if(&EqualTo[observer])
+        Utils::Arrays.fetch_from_args(args).each do |observer|
+          delete_observer(observer)
         end
 
         true
       end
 
       def on(options)
-        event, callable, with, context = options[:event], options[:call], options[:with], options[:context]
-
-        return true unless event.is_a?(Symbol) && callable.respond_to?(:call)
-
-        @relation << [:callable, event, [callable, with, context]] unless include?(callable)
-
-        true
+        on!(options, once: false)
       end
 
-      def to_inspect
-        none? ? @relation : @relation.map(&GetObserver)
+      def once(options)
+        on!(options, once: true)
       end
 
-      private_constant :EqualTo, :GetObserver, :MapObserver, :MapObserverWithoutContext
+      EventNameToCall = -> event_name { -> subscriber { subscriber[0] == :callable && subscriber[1] == event_name } }
+
+      def off(args)
+        Utils::Arrays.fetch_from_args(args).each do |value|
+          if value.is_a?(Symbol)
+            @list.delete_if(&EventNameToCall[value])
+          else
+            delete_observer(value)
+          end
+        end
+      end
+
+      private
+
+        def delete_observer(observer)
+          @list.delete_if(&EqualTo[observer])
+        end
+
+        def on!(options, once:)
+          event, callable, with, context = options[:event], options[:call], options[:with], options[:context]
+
+          return true unless event.is_a?(Symbol) && callable.respond_to?(:call)
+
+          @list << [:callable, event, [callable, with, context], once] unless include?(callable)
+
+          true
+        end
+
+      private_constant :EqualTo, :EventNameToCall
+      private_constant :GetObserver, :MapObserver, :MapObserversToInitialize
     end
 
+    private_constant :Subscribers
   end
 end

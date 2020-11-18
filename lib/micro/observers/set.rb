@@ -11,7 +11,6 @@ module Micro
       def initialize(subject, subscribers: nil)
         @subject = subject
         @subject_changed = false
-
         @subscribers = Subscribers.new(subscribers)
       end
 
@@ -40,16 +39,14 @@ module Micro
       end
       alias included? include?
 
-      def attach(*args)
-        @subscribers.attach(args) and self
-      end
+      def attach(*args); @subscribers.attach(args) and self; end
+      def detach(*args); @subscribers.detach(args) and self; end
 
-      def detach(*args)
-        @subscribers.detach(args) and self
-      end
+      def on(options = Utils::EMPTY_HASH); @subscribers.on(options) and self; end
+      def once(options = Utils::EMPTY_HASH); @subscribers.once(options) and self; end
 
-      def on(options = Utils::EMPTY_HASH)
-        @subscribers.on(options) and self
+      def off(*args)
+        @subscribers.off(args) and self
       end
 
       def notify(*events, data: nil)
@@ -73,29 +70,27 @@ module Micro
       def inspect
         subs = @subscribers.to_inspect
 
-        '<#%s @subject=%s @subject_changed=%p @subscribers=%p>' % [self.class, @subject, @subject_changed, subs]
-      end
-
-      # :nodoc:
-      def __each__(&block)
-        @subscribers.relation.each(&block)
-      end
-
-      # :nodoc:
-      def __subject__
-        @subject
+        '#<%s @subject=%s @subject_changed=%p @subscribers=%p>' % [self.class, @subject, @subject_changed, subs]
       end
 
       private
 
-        def broadcast(event_names, data, if_subject_changed = false)
-          Broadcast.call(self, event_names, data, if_subject_changed: if_subject_changed)
+        def broadcast_if_subject_changed(event_names, data = nil)
+          return self if none? || !subject_changed?
+
+          broadcast(event_names, data)
+
+          subject_changed(false)
 
           self
         end
 
-        def broadcast_if_subject_changed(event_names, data = nil)
-          broadcast(event_names, data, true)
+        def broadcast(event_names, data)
+          return self if none?
+
+          Broadcast.call(@subscribers, @subject, data, event_names)
+
+          self
         end
 
       private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT
