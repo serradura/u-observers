@@ -45,13 +45,13 @@ Por causa desse problema, decidi criar uma gem que encapsula o padrão sem alter
       - [`observers.attach(*args, perform_once: true)`](#observersattachargs-perform_once-true)
       - [`observers.once(event:, call:, ...)`](#observersonceevent-call-)
     - [Definindo observers com blocos](#definindo-observers-com-blocos)
-      - [order.observers.on()](#orderobserverson)
-      - [order.observers.on()](#orderobserverson-1)
+      - [`observers.on()`](#observerson)
+      - [`observers.once()`](#observersonce)
       - [Substituindo um bloco por um `lambda`/`proc`](#substituindo-um-bloco-por-um-lambdaproc)
     - [Desanexando observers](#desanexando-observers)
     - [Integrações ActiveRecord e ActiveModel](#integrações-activerecord-e-activemodel)
-      - [notify_observers_on()](#notify_observers_on)
-      - [notify_observers()](#notify_observers)
+      - [`.notify_observers_on()`](#notify_observers_on)
+      - [`.notify_observers()`](#notify_observers)
   - [Desenvolvimento](#desenvolvimento)
   - [Contribuindo](#contribuindo)
   - [License](#license)
@@ -383,7 +383,7 @@ order.cancel!         # Nothing will happen because there aren't observers.
 
 Os métodos `#on()` e `#once()` podem receber um evento (a `symbol`) e um bloco para definir observers.
 
-#### order.observers.on()
+#### `observers.on()`
 
 ```ruby
 class Order
@@ -406,7 +406,7 @@ order.cancel!         # The order #(70301497466060) has been canceled.
 order.observers.some? # true
 ```
 
-#### order.observers.on()
+#### `observers.once()`
 
 ```ruby
 class Order
@@ -431,7 +431,7 @@ order.observers.some? # false
 
 #### Substituindo um bloco por um `lambda`/`proc`
 
-Ruby permite que você substitua qualquer bloco com um `lambda`/`proc`. Exemplo:
+Ruby permite que você substitua qualquer bloco com um `lambda`/`proc`. Portanto, será possível usar este tipo de recurso para definir seus observers. Exemplo:
 
 ```ruby
 class Order
@@ -475,11 +475,12 @@ module OrderNotifications
 end
 
 order = Order.new
+order.observers.on(:canceled) { |_event| }
 order.observers.on(event: :canceled, call: NotifyAfterCancel)
 order.observers.attach(OrderNotifications)
 
 order.observers.some? # true
-order.observers.count # 2
+order.observers.count # 3
 
 order.observers.off(:canceled) # removing the callable (NotifyAfterCancel).
 order.observers.some? # true
@@ -503,7 +504,7 @@ gem 'u-observers', require: 'u-observers/for/active_record'
 
 Este recurso irá expor módulos que podem ser usados ​​para adicionar macros (métodos estáticos) que foram projetados para funcionar com os callbacks do `ActiveModel`/`ActiveRecord`. Exemplo:
 
-#### notify_observers_on()
+#### `.notify_observers_on()`
 
 O `notify_observers_on` permite que você defina um ou mais callbacks do `ActiveModel`/`ActiveRecord`, que serão usados ​​para notificar seus *observers*.
 
@@ -546,7 +547,7 @@ end
 
 [⬆️ Voltar para o índice](#índice-)
 
-#### notify_observers()
+#### `.notify_observers()`
 
 O `notify_observers` permite definir um ou mais eventos, que serão utilizados para notificar após a execução de algum callback do `ActiveModel`/`ActiveRecord`.
 
@@ -564,12 +565,6 @@ class Post < ActiveRecord::Base
   # end
 end
 
-module TitlePrinter
-  def self.transaction_completed(post)
-    puts("Title: #{post.title}")
-  end
-end
-
 module TitlePrinterWithContext
   def self.transaction_completed(post, event)
     puts("Title: #{post.title} (from: #{event.ctx[:from]})")
@@ -578,7 +573,11 @@ end
 
 Post.transaction do
   post = Post.new(title: 'Olá mundo')
-  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example #7' })
+
+  post.observers.on(:transaction_completed) { |event| puts("Title: #{event.subject.title}") }
+
+  post.observers.attach(TitlePrinterWithContext, context: { from: 'example #7' })
+
   post.save
 end
 

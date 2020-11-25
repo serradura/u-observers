@@ -46,13 +46,13 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
       - [`observers.attach(*args, perform_once: true)`](#observersattachargs-perform_once-true)
       - [`observers.once(event:, call:, ...)`](#observersonceevent-call-)
     - [Defining observers using blocks](#defining-observers-using-blocks)
-      - [order.observers.on()](#orderobserverson)
-      - [order.observers.on()](#orderobserverson-1)
+      - [`observers.on()`](#observerson)
+      - [`observers.once()`](#observersonce)
       - [Replacing a block by a `lambda`/`proc`](#replacing-a-block-by-a-lambdaproc)
     - [Detaching observers](#detaching-observers)
     - [ActiveRecord and ActiveModel integrations](#activerecord-and-activemodel-integrations)
-      - [notify_observers_on()](#notify_observers_on)
-      - [notify_observers()](#notify_observers)
+      - [`.notify_observers_on()`](#notify_observers_on)
+      - [`.notify_observers()`](#notify_observers)
   - [Development](#development)
   - [Contributing](#contributing)
   - [License](#license)
@@ -219,8 +219,8 @@ order.observers.notify(:changed, data: 1)
 The `Micro::Observers::Event` is the event payload. Follow below all of its properties:
 
 - `#name` will be the broadcasted event.
-- `#subject` will be the observed subject.
-- `#context` will be [the context data](#sharing-a-context-with-your-observers) that was defined in the moment that you attach the observer.
+- `#subject` will be the observed object.
+- `#context` will be [the context data](#sharing-a-context-with-your-observers) that was defined at the moment that you attach the observer.
 - `#data` will be [the value that was shared in the observers' notification](#sharing-data-when-notifying-the-observers).
 - `#ctx` is an alias for the `#context` method.
 - `#subj` is an alias for the `#subject` method.
@@ -231,7 +231,7 @@ The `Micro::Observers::Event` is the event payload. Follow below all of its prop
 
 The `observers.on()` method enables you to attach a callable as an observer.
 
-Usually, a callable has a well-defined responsibility (do only one thing), because of this, it tends to be more [SRP (Single-responsibility principle)](https://en.wikipedia.org/wiki/Single-responsibility_principle). friendly than a conventional observer (that could have N methods to respond to different kinds of notification).
+Usually, a callable has a well-defined responsibility (do only one thing), because of this, it tends to be more [SRP (Single-responsibility principle)](https://en.wikipedia.org/wiki/Single-responsibility_principle) friendly than a conventional observer (that could have N methods to respond to different kinds of notification).
 
 This method receives the below options:
 1. `:event` the expected event name.
@@ -381,9 +381,9 @@ order.cancel!         # Nothing will happen because there aren't observers.
 
 ### Defining observers using blocks
 
-The methods `#on()` and `#once()` can receive the event name (a `symbol`) and a block to define observers.
+The methods `#on()` and `#once()` can receive an event (`symbol`) and a block to define observers.
 
-#### order.observers.on()
+#### `observers.on()`
 
 ```ruby
 class Order
@@ -406,7 +406,7 @@ order.cancel!         # The order #(70301497466060) has been canceled.
 order.observers.some? # true
 ```
 
-#### order.observers.on()
+#### `observers.once()`
 
 ```ruby
 class Order
@@ -431,7 +431,7 @@ order.observers.some? # false
 
 #### Replacing a block by a `lambda`/`proc`
 
-Ruby allows you to replace any block with a `lambda`/`proc`. e.g.
+Ruby allows you to replace any block with a `lambda`/`proc`. So, it will be possible to use this kind of feature to define your observers. e.g.
 
 ```ruby
 class Order
@@ -475,11 +475,12 @@ module OrderNotifications
 end
 
 order = Order.new
+order.observers.on(:canceled) { |_event| }
 order.observers.on(event: :canceled, call: NotifyAfterCancel)
 order.observers.attach(OrderNotifications)
 
 order.observers.some? # true
-order.observers.count # 2
+order.observers.count # 3
 
 order.observers.off(:canceled) # removing the callable (NotifyAfterCancel).
 order.observers.some? # true
@@ -503,9 +504,9 @@ gem 'u-observers', require: 'u-observers/for/active_record'
 
 This feature will expose modules that could be used to add macros (static methods) that were designed to work with `ActiveModel`/`ActiveRecord` callbacks. e.g:
 
-#### notify_observers_on()
+#### `.notify_observers_on()`
 
-The `notify_observers_on` allows you to define one or more `ActiveModel`/`ActiveRecord` callbacks, that will be used to notify your object observers.
+The `notify_observers_on` allows you to define one or more `ActiveModel`/`ActiveRecord` callbacks, that will be used to notify your observers.
 
 ```ruby
 class Post < ActiveRecord::Base
@@ -545,7 +546,7 @@ end
 
 [⬆️ &nbsp; Back to Top](#table-of-contents-)
 
-#### notify_observers()
+#### `.notify_observers()`
 
 The `notify_observers` allows you to define one or more *events*, that will be used to notify after the execution of some `ActiveModel`/`ActiveRecord` callback.
 
@@ -563,12 +564,6 @@ class Post < ActiveRecord::Base
   # end
 end
 
-module TitlePrinter
-  def self.transaction_completed(post)
-    puts("Title: #{post.title}")
-  end
-end
-
 module TitlePrinterWithContext
   def self.transaction_completed(post, event)
     puts("Title: #{post.title} (from: #{event.ctx[:from]})")
@@ -577,7 +572,11 @@ end
 
 Post.transaction do
   post = Post.new(title: 'Olá mundo')
-  post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'example #7' })
+
+  post.observers.on(:transaction_completed) { |event| puts("Title: #{event.subject.title}") }
+
+  post.observers.attach(TitlePrinterWithContext, context: { from: 'example #7' })
+
   post.save
 end
 # The message below will be printed by the observers (TitlePrinter, TitlePrinterWithContext):

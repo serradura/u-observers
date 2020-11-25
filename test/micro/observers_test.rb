@@ -38,12 +38,6 @@ class Micro::ObserversTest < Minitest::Test
       after_commit(&notify_observers(:record_has_been_persisted))
     end
 
-    module TitlePrinter
-      def self.record_has_been_persisted(post)
-        MemoryOutput.puts("Title: #{post.title}")
-      end
-    end
-
     module TitlePrinterWithContext
       def self.record_has_been_persisted(post, event)
         MemoryOutput.puts("Title: #{post.title}, from: #{event.ctx[:from]}")
@@ -53,7 +47,8 @@ class Micro::ObserversTest < Minitest::Test
     def test_the_observer_notification_including_a_context
       Post.transaction do
         post = Post.new(title: 'Hello world')
-        post.observers.attach(TitlePrinter, TitlePrinterWithContext, context: { from: 'Test 1' })
+        post.observers.on(:record_has_been_persisted) { |event| MemoryOutput.puts("Title: #{event.subject.title}") }
+        post.observers.attach(TitlePrinterWithContext, context: { from: 'Test 1' })
         post.save
       end
 
