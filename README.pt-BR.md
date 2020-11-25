@@ -44,6 +44,10 @@ Por causa desse problema, decidi criar uma gem que encapsula o padrão sem alter
     - [Definindo observers que executam apenas uma vez](#definindo-observers-que-executam-apenas-uma-vez)
       - [`observers.attach(*args, perform_once: true)`](#observersattachargs-perform_once-true)
       - [`observers.once(event:, call:, ...)`](#observersonceevent-call-)
+    - [Definindo observers com blocos](#definindo-observers-com-blocos)
+      - [order.observers.on()](#orderobserverson)
+      - [order.observers.on()](#orderobserverson-1)
+      - [Substituindo um bloco por um `lambda`/`proc`](#substituindo-um-bloco-por-um-lambdaproc)
     - [Desanexando observers](#desanexando-observers)
     - [Integrações ActiveRecord e ActiveModel](#integrações-activerecord-e-activemodel)
       - [notify_observers_on()](#notify_observers_on)
@@ -66,7 +70,7 @@ gem 'u-observers'
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
 | unreleased  | main    | >= 2.2.0 | >= 3.2, < 6.1 |
-| 2.2.1       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.3.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 | 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Nota**: O ActiveRecord não é uma dependência, mas você pode adicionar um módulo para habilitar alguns métodos estáticos que foram projetados para serem usados ​​com seus [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
@@ -373,7 +377,84 @@ order.observers.some? # false
 order.cancel!         # Nothing will happen because there aren't observers.
 ```
 
-[⬆️ &nbsp; Back to Top](#table-of-contents-)
+[⬆️ Voltar para o índice](#índice-)
+
+### Definindo observers com blocos
+
+Os métodos `#on()` e `#once()` podem receber um evento (a `symbol`) e um bloco para definir observers.
+
+#### order.observers.on()
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+order = Order.new
+order.observers.on(:canceled) do |event|
+  puts "The order #(#{event.subject.object_id}) has been canceled."
+end
+
+order.observers.some? # true
+
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # true
+```
+
+#### order.observers.on()
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+order = Order.new
+order.observers.once(:canceled) do |event|
+  puts "The order #(#{event.subject.object_id}) has been canceled."
+end
+
+order.observers.some? # true
+
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # false
+```
+
+#### Substituindo um bloco por um `lambda`/`proc`
+
+Ruby permite que você substitua qualquer bloco com um `lambda`/`proc`. Exemplo:
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+NotifyAfterCancel = -> event { puts "The order #(#{event.subject.object_id}) has been canceled." }
+
+order = Order.new
+order.observers.once(:canceled, &NotifyAfterCancel)
+
+order.observers.some? # true
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # false
+order.cancel!         # Nothing will happen because there aren't observers.
+```
+
+[⬆️ Voltar para o índice](#índice-)
 
 ### Desanexando observers
 
@@ -409,7 +490,7 @@ order.observers.some? # false
 order.observers.count # 0
 ```
 
-[⬆️ &nbsp; Back to Top](#table-of-contents-)
+[⬆️ Voltar para o índice](#índice-)
 
 ### Integrações ActiveRecord e ActiveModel
 

@@ -45,6 +45,10 @@ Because of this issue, I decided to create a gem that encapsulates the pattern w
     - [Defining observers that execute only once](#defining-observers-that-execute-only-once)
       - [`observers.attach(*args, perform_once: true)`](#observersattachargs-perform_once-true)
       - [`observers.once(event:, call:, ...)`](#observersonceevent-call-)
+    - [Defining observers using blocks](#defining-observers-using-blocks)
+      - [order.observers.on()](#orderobserverson)
+      - [order.observers.on()](#orderobserverson-1)
+      - [Replacing a block by a `lambda`/`proc`](#replacing-a-block-by-a-lambdaproc)
     - [Detaching observers](#detaching-observers)
     - [ActiveRecord and ActiveModel integrations](#activerecord-and-activemodel-integrations)
       - [notify_observers_on()](#notify_observers_on)
@@ -67,7 +71,7 @@ gem 'u-observers'
 | u-observers | branch  | ruby     | activerecord  |
 | ----------- | ------- | -------- | ------------- |
 | unreleased  | main    | >= 2.2.0 | >= 3.2, < 6.1 |
-| 2.2.1       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
+| 2.3.0       | v2.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 | 1.0.0       | v1.x    | >= 2.2.0 | >= 3.2, < 6.1 |
 
 > **Note**: The ActiveRecord isn't a dependency, but you could add a module to enable some static methods that were designed to be used with its [callbacks](https://guides.rubyonrails.org/active_record_callbacks.html).
@@ -365,6 +369,83 @@ end
 
 order = Order.new
 order.observers.once(event: :canceled, call: NotifyAfterCancel)
+
+order.observers.some? # true
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # false
+order.cancel!         # Nothing will happen because there aren't observers.
+```
+
+[⬆️ &nbsp; Back to Top](#table-of-contents-)
+
+### Defining observers using blocks
+
+The methods `#on()` and `#once()` can receive the event name (a `symbol`) and a block to define observers.
+
+#### order.observers.on()
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+order = Order.new
+order.observers.on(:canceled) do |event|
+  puts "The order #(#{event.subject.object_id}) has been canceled."
+end
+
+order.observers.some? # true
+
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # true
+```
+
+#### order.observers.on()
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+order = Order.new
+order.observers.once(:canceled) do |event|
+  puts "The order #(#{event.subject.object_id}) has been canceled."
+end
+
+order.observers.some? # true
+
+order.cancel!         # The order #(70301497466060) has been canceled.
+
+order.observers.some? # false
+```
+
+#### Replacing a block by a `lambda`/`proc`
+
+Ruby allows you to replace any block with a `lambda`/`proc`. e.g.
+
+```ruby
+class Order
+  include Micro::Observers
+
+  def cancel!
+    observers.notify!(:canceled)
+  end
+end
+
+NotifyAfterCancel = -> event { puts "The order #(#{event.subject.object_id}) has been canceled." }
+
+order = Order.new
+order.observers.once(:canceled, &NotifyAfterCancel)
 
 order.observers.some? # true
 order.cancel!         # The order #(70301497466060) has been canceled.

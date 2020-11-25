@@ -56,5 +56,31 @@ module Micro::Observers
       refute File.exist?(file1.path)
       refute File.exist?(file2.path)
     end
+
+    def test_the_methods_with_blocks
+      subject = { number: 0 }
+
+      observers = Micro::Observers::Set.new(subject)
+
+      observers.on(:add_one) do |event|
+        assert_instance_of(Micro::Observers::Event, event)
+
+        event.subject[:number] += 1
+      end
+
+      observers.once(:add_two) do |event|
+        assert_instance_of(Micro::Observers::Event, event)
+
+        event.subject[:number] += 2
+      end
+
+      observers.notify!(:add_one)
+      observers.notify!(:add_one)
+      observers.notify!(:add_one)
+      observers.notify!(:add_two)
+      observers.notify!(:add_two)
+
+      assert_equal(5, subject[:number])
+    end
   end
 end
