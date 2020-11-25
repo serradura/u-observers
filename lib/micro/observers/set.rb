@@ -42,12 +42,19 @@ module Micro
       def attach(*args); @subscribers.attach(args) and self; end
       def detach(*args); @subscribers.detach(args) and self; end
 
-      def on(options = Utils::EMPTY_HASH); @subscribers.on(options) and self; end
-      def once(options = Utils::EMPTY_HASH); @subscribers.once(options) and self; end
-
-      def off(*args)
-        @subscribers.off(args) and self
+      CallableOptions = -> (arg, block) do
+        arg.is_a?(Symbol) && block ? { event: arg, call: block } : arg
       end
+
+      def on(arg = Utils::EMPTY_HASH, &block)
+        @subscribers.on(CallableOptions[arg, block]) and self
+      end
+
+      def once(arg = Utils::EMPTY_HASH, &block)
+        @subscribers.once(CallableOptions[arg, block]) and self
+      end
+
+      def off(*args); @subscribers.off(args) and self; end
 
       def notify(*events, data: nil)
         broadcast_if_subject_changed(Event::Names.fetch(events), data)
@@ -93,7 +100,7 @@ module Micro
           self
         end
 
-      private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT
+      private_constant :INVALID_BOOLEAN_MSG, :CALL_EVENT; :CallableOptions
     end
 
   end
