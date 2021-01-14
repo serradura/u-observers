@@ -6,7 +6,7 @@ class Micro::ObserversTest < Minitest::Test
     MemoryOutput.clear
   end
 
-  if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
+  if ENV.fetch('ACTIVERECORD_VERSION', '6.2') < '6.2'
     class Book < ActiveRecord::Base
       include ::Micro::Observers::For::ActiveRecord
 
