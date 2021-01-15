@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in u-observers.gemspec
 gemspec
 
-activerecord_version = ENV.fetch('ACTIVERECORD_VERSION', '6.1')
+activerecord_version = ENV.fetch('ACTIVERECORD_VERSION', '6.2')
 
 activerecord = case activerecord_version
               when '3.2' then '3.2.22'
