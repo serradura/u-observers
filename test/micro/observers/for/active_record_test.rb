@@ -1,6 +1,6 @@
 require 'test_helper'
 
-if ENV.fetch('ACTIVERECORD_VERSION', '6.1') < '6.1'
+if ENV.fetch('ACTIVERECORD_VERSION', '6.2') < '6.2'
   class Micro::Observers::For::ActiveRecordTest < Minitest::Test
     def setup
       MemoryOutput.clear

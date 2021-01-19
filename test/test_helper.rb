@@ -17,7 +17,7 @@ if activerecord_version = ENV['ACTIVERECORD_VERSION']
     end
   end
 
-  if activerecord_version < '6.1'
+  if activerecord_version < '6.2'
     require 'u-observers/for/active_record'
   end
 else
