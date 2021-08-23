@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+
+RUBY_V=$(ruby -v)
+
+function run_with_bundler {
+  rm Gemfile.lock
+
+  eval "$1 bundle update"
+  eval "$1 bundle exec rake test"
+}
+
+function run_with_ar_version_and_bundler {
+  run_with_bundler "ACTIVERECORD_VERSION=$1"
+}
+
+RUBY_2_2345="ruby 2.[2345]."
+RUBY_2_567="ruby 2.[567]."
+RUBY_3_0="ruby 3.0."
+
+run_with_bundler ""
+
+if [[ $RUBY_V =~ "ruby 2.2." ]]; then
+  run_with_ar_version_and_bundler "3.2"
+fi
+
+if [[ $RUBY_V =~ $RUBY_2_2345 ]]; then
+  run_with_ar_version_and_bundler "4.0"
+  run_with_ar_version_and_bundler "4.1"
+  run_with_ar_version_and_bundler "4.2"
+  run_with_ar_version_and_bundler "5.0"
+  run_with_ar_version_and_bundler "5.1"
+  run_with_ar_version_and_bundler "5.2"
+fi
+
+if [[ $RUBY_V =~ $RUBY_2_567 ]] || [[ $RUBY_V =~ $RUBY_3_0 ]]; then
+  gem install bundler -v ">= 2" --no-doc
+
+  run_with_ar_version_and_bundler "6.0"
+  run_with_ar_version_and_bundler "6.1"
+fi
