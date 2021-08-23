@@ -27,7 +27,9 @@ if [[ $RUBY_V =~ "ruby 2.[2345]." ]]; then
   test_with_activerecord "5.1"
   test_with_activerecord "5.2"
 
-  reset_gemfile_and_test
+  if [[ $RUBY_V =~ "ruby 2.[234]." ]]; then
+    reset_gemfile_and_test
+  fi
 fi
 
 if [[ $RUBY_V =~ "ruby 2.[567]." ]] || [[ $RUBY_V =~ "ruby 3.0." ]]; then
