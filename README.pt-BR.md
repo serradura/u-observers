@@ -11,8 +11,8 @@
     <img alt="Gem" src="https://img.shields.io/gem/v/u-observers.svg?style=flat-square">
   </a>
 
-  <a href="https://travis-ci.com/serradura/u-observers">
-    <img alt="Build Status" src="https://travis-ci.com/serradura/u-observers.svg?branch=main">
+  <a href="https://github.com/serradura/u-observers/actions/workflows/ci.yml">
+    <img alt="Build Status" src="https://github.com/serradura/u-observers/actions/workflows/ci.yml/badge.svg">
   </a>
 
   <a href="https://codeclimate.com/github/serradura/u-observers/maintainability">
