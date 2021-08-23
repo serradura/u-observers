@@ -4,39 +4,41 @@ set -e
 
 RUBY_V=$(ruby -v)
 
-function run_with_bundler {
+function reset_gemfile_and_run {
   rm Gemfile.lock
 
   eval "$1 bundle update"
   eval "$1 bundle exec rake test"
 }
 
-function run_with_ar_version_and_bundler {
-  run_with_bundler "ACTIVERECORD_VERSION=$1"
+function run_with_activerecord {
+  reset_gemfile_and_run "ACTIVERECORD_VERSION=$1"
 }
 
 RUBY_2_2345="ruby 2.[2345]."
 RUBY_2_567="ruby 2.[567]."
-RUBY_3_0="ruby 3.0."
-
-run_with_bundler ""
-
-if [[ $RUBY_V =~ "ruby 2.2." ]]; then
-  run_with_ar_version_and_bundler "3.2"
-fi
+RUBY_3_x="ruby 3.0."
 
 if [[ $RUBY_V =~ $RUBY_2_2345 ]]; then
-  run_with_ar_version_and_bundler "4.0"
-  run_with_ar_version_and_bundler "4.1"
-  run_with_ar_version_and_bundler "4.2"
-  run_with_ar_version_and_bundler "5.0"
-  run_with_ar_version_and_bundler "5.1"
-  run_with_ar_version_and_bundler "5.2"
+  reset_gemfile_and_run
+
+  if [[ $RUBY_V =~ "ruby 2.2." ]]; then
+    run_with_activerecord "3.2"
+  fi
+
+  run_with_activerecord "4.0"
+  run_with_activerecord "4.1"
+  run_with_activerecord "4.2"
+  run_with_activerecord "5.0"
+  run_with_activerecord "5.1"
+  run_with_activerecord "5.2"
 fi
 
-if [[ $RUBY_V =~ $RUBY_2_567 ]] || [[ $RUBY_V =~ $RUBY_3_0 ]]; then
+if [[ $RUBY_V =~ $RUBY_2_567 ]] || [[ $RUBY_V =~ $RUBY_3_x ]]; then
   gem install bundler -v ">= 2" --no-doc
 
-  run_with_ar_version_and_bundler "6.0"
-  run_with_ar_version_and_bundler "6.1"
+  reset_gemfile_and_run
+
+  run_with_activerecord "6.0"
+  run_with_activerecord "6.1"
 fi
